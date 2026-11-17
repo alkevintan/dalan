@@ -16,7 +16,7 @@ object Codecs {
     }
 
     /**
-     * True only if a hardware (non-software) VP9 decoder is present. The SM-T550 has none.
+     * True only if a hardware (non-software) VP9 decoder is present. Many older SoCs (e.g. Snapdragon 410) have none.
      * The result is cached; on the main thread before [warmUp] finished this answers false
      * instead of blocking.
      */

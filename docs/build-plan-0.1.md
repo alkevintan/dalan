@@ -1,4 +1,9 @@
-# Dalan — build plan
+# Dalan — build plan (0.1)
+
+> **Historical document.** This is the original build plan for Dalan 0.1. It was written for the first
+> test device (Samsung SM-T550; its device profile lived outside this repo) and predates that device's move
+> to LineageOS 18.1 / Android 11. Dalan itself is meant for any Android 5.0+ device: see the README for
+> current behaviour. Where this plan and the code disagree, the code and the README win.
 
 YouTube client for the Samsung SM-T550 (see `../CLAUDE.md`): Android 7.1.1 / API 25, 32-bit
 Cortex-A53 @1.2 GHz, Adreno 306, 1024×768 mdpi 4:3, 96 MB heap growth limit, storage nearly full.

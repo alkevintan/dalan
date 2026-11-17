@@ -50,7 +50,7 @@ data class Pick(val group: Int, val tracks: List<Int>) {
 }
 
 /**
- * Track selection rules for the SM-T550 (hardware H.264/VP8 only, VP9 software-only, no AV1).
+ * Track selection rules for low-end devices: H.264 first, VP9 only in hardware (or software <= 480p), never AV1.
  *
  * Video is chosen from tiers, taking the first non-empty one:
  *  1. HANDLED H.264 within the height cap and the fps cap (adaptive inside one group)

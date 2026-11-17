@@ -176,7 +176,7 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
         // With a second PlayerActivity already visible (Player -> Channel -> video) leave the player alone.
         if (c != null && visibleCount <= 0) {
             if (!c.settings.backgroundPlay) service?.player?.playWhenReady = false
-            else c.setVideoEnabled(false) // audio only while hidden: saves CPU on this tablet
+            else c.setVideoEnabled(false) // audio only while hidden: saves CPU on weak devices
         }
         c?.savePosition()
         super.onStop()
