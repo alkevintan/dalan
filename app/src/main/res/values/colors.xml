@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="badge_bg">#CC000000</color>
+    <color name="card_thumb_bg">#FF222222</color>
+    <color name="text_secondary">#FFAAAAAA</color>
+    <color name="controls_scrim">#99000000</color>
+</resources>

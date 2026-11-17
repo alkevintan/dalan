@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dalan</string>
+    <string name="home">Home</string>
+    <string name="music">Music</string>
+    <string name="gaming">Gaming</string>
+    <string name="news">News</string>
+    <string name="sports">Sports</string>
+    <string name="live">Live</string>
+    <string name="search_hint">Search YouTube</string>
+    <string name="refresh">Refresh</string>
+    <string name="settings">Settings</string>
+    <string name="retry">Retry</string>
+    <string name="loading">Loading…</string>
+    <string name="error_generic">Couldn\'t load content. Check your connection.</string>
+    <string name="empty">Nothing here.</string>
+    <string name="quality">Quality</string>
+    <string name="auto">Auto</string>
+    <string name="captions">Captions</string>
+    <string name="captions_off">Off</string>
+    <string name="speed">Speed</string>
+    <string name="related">Related videos</string>
+    <string name="show_more">Show more</string>
+    <string name="show_less">Show less</string>
+    <string name="close">Close</string>
+    <string name="play_pause">Play/pause</string>
+    <string name="notif_channel">Playback</string>
+    <string name="views_fmt">%1$s</string>
+    <string name="unsupported_item">This item type isn\'t supported in Dalan 0.1.</string>
+    <string name="no_captions">No captions available.</string>
+    <string name="about">About and licenses</string>
+    <string name="uploads">Uploads</string>
+    <string name="pref_playback">Playback</string>
+    <string name="pref_max_quality">Maximum quality</string>
+    <string name="pref_allow_60">Allow 60 fps</string>
+    <string name="pref_allow_60_sum">Off: cap at 30 fps (smoother on this CPU)</string>
+    <string name="pref_prefer_vp9">Prefer VP9</string>
+    <string name="pref_prefer_vp9_sum">Only offered because a hardware VP9 decoder was found</string>
+    <string name="pref_bg">Background play</string>
+    <string name="pref_bg_sum">Keep audio playing when the app is in the background</string>
+    <string name="pref_autoplay">Autoplay next video</string>
+    <string name="pref_caption_lang">Caption language</string>
+    <string name="pref_clear_cache">Clear image cache</string>
+    <string name="pref_cache_cleared">Image cache cleared.</string>
+    <string-array name="quality_entries">
+        <item>360p</item>
+        <item>480p</item>
+        <item>720p</item>
+        <item>1080p (H.264 only)</item>
+    </string-array>
+    <string-array name="quality_values">
+        <item>360</item>
+        <item>480</item>
+        <item>720</item>
+        <item>1080</item>
+    </string-array>
+    <string-array name="caption_entries">
+        <item>Off</item>
+        <item>System language</item>
+        <item>English</item>
+        <item>Spanish</item>
+        <item>French</item>
+        <item>German</item>
+        <item>Portuguese</item>
+        <item>Russian</item>
+        <item>Japanese</item>
+        <item>Korean</item>
+        <item>Chinese</item>
+        <item>Arabic</item>
+        <item>Hindi</item>
+        <item>Italian</item>
+        <item>Turkish</item>
+        <item>Indonesian</item>
+    </string-array>
+    <string-array name="caption_values">
+        <item>off</item>
+        <item>system</item>
+        <item>en</item>
+        <item>es</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>pt</item>
+        <item>ru</item>
+        <item>ja</item>
+        <item>ko</item>
+        <item>zh</item>
+        <item>ar</item>
+        <item>hi</item>
+        <item>it</item>
+        <item>tr</item>
+        <item>id</item>
+    </string-array>
+</resources>

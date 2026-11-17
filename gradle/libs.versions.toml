@@ -1,0 +1,68 @@
+[versions]
+agp = "9.5.0"
+junit = "4.13.2"
+retrofit = "2.5.0"
+gson = "2.8.2"
+jsonPath = "2.4.0"
+okhttp = "3.12.13"
+brotliDec = "0.1.2"
+rxjava = "2.2.21"
+rxandroid = "2.1.1"
+cronetApi = "105.5195.68"
+cronetOkhttp = "0.1.0"
+annotation = "1.1.0"
+coreKtx = "1.12.0"
+coroutines = "1.7.3"
+appcompat = "1.2.0"
+preference = "1.1.0"
+media = "1.0.1"
+recyclerview = "1.1.0"
+disklrucache = "2.0.2"
+netcipher = "2.1.0"
+dnsjava = "2.1.9"
+regex = "1.1.11"
+webkit = "1.11.0"
+nanojson = "1.7"
+protobuf = "3.17.3"
+protobufPlugin = "0.10.1"
+checker = "2.5.0"
+testRunner = "1.1.0"
+okhttpProfiler = "1.0.8"
+
+[libraries]
+junit = { module = "junit:junit", version.ref = "junit" }
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+retrofit-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+json-path = { module = "com.jayway.jsonpath:json-path", version.ref = "jsonPath" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+okhttp-doh = { module = "com.squareup.okhttp3:okhttp-dnsoverhttps", version.ref = "okhttp" }
+okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
+brotli-dec = { module = "org.brotli:dec", version.ref = "brotliDec" }
+okhttp-profiler = { module = "com.localebro:okhttpprofiler", version.ref = "okhttpProfiler" }
+rxjava = { module = "io.reactivex.rxjava2:rxjava", version.ref = "rxjava" }
+rxandroid = { module = "io.reactivex.rxjava2:rxandroid", version.ref = "rxandroid" }
+cronet-api = { module = "org.chromium.net:cronet-api", version.ref = "cronetApi" }
+cronet-okhttp = { module = "com.google.net.cronet:cronet-okhttp", version.ref = "cronetOkhttp" }
+annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+preference = { module = "androidx.preference:preference", version.ref = "preference" }
+media = { module = "androidx.media:media", version.ref = "media" }
+recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
+disklrucache = { module = "com.jakewharton:disklrucache", version.ref = "disklrucache" }
+netcipher = { module = "info.guardianproject.netcipher:netcipher", version.ref = "netcipher" }
+dnsjava = { module = "dnsjava:dnsjava", version.ref = "dnsjava" }
+florianingerl-regex = { module = "com.github.florianingerl.util:regex", version.ref = "regex" }
+webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
+nanojson = { module = "com.grack:nanojson", version.ref = "nanojson" }
+protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
+checker-qual = { module = "org.checkerframework:checker-qual", version.ref = "checker" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "testRunner" }
+checker-compat-qual = { module = "org.checkerframework:checker-compat-qual", version.ref = "checker" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:key="cat_playback" android:title="@string/pref_playback">
+        <ListPreference
+            android:key="max_quality"
+            android:title="@string/pref_max_quality"
+            android:entries="@array/quality_entries"
+            android:entryValues="@array/quality_values"
+            android:defaultValue="720"
+            android:summary="%s" />
+        <CheckBoxPreference
+            android:key="allow_60fps"
+            android:title="@string/pref_allow_60"
+            android:summary="@string/pref_allow_60_sum"
+            android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="prefer_vp9"
+            android:title="@string/pref_prefer_vp9"
+            android:summary="@string/pref_prefer_vp9_sum"
+            android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="background_play"
+            android:title="@string/pref_bg"
+            android:summary="@string/pref_bg_sum"
+            android:defaultValue="true" />
+        <CheckBoxPreference
+            android:key="autoplay_next"
+            android:title="@string/pref_autoplay"
+            android:defaultValue="true" />
+        <ListPreference
+            android:key="caption_lang"
+            android:title="@string/pref_caption_lang"
+            android:entries="@array/caption_entries"
+            android:entryValues="@array/caption_values"
+            android:defaultValue="off"
+            android:summary="%s" />
+    </PreferenceCategory>
+    <Preference android:key="clear_cache" android:title="@string/pref_clear_cache" />
+    <Preference android:key="about" android:title="@string/about" />
+</PreferenceScreen>
