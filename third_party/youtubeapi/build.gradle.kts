@@ -39,7 +39,6 @@ dependencies {
     implementation(libs.annotation)
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
-    implementation(libs.florianingerl.regex)
     implementation(libs.webkit)
     implementation(libs.nanojson)
 }

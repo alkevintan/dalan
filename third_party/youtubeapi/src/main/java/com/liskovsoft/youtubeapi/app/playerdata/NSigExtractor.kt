@@ -8,22 +8,29 @@ import java.util.regex.Pattern
 
 internal object NSigExtractor {
     private val TAG = NSigExtractor::class.java.simpleName
-    private val mNFuncPattern = com.florianingerl.util.regex.Pattern.compile("""(?x)
-            (?:
-                \.get\("n"\)\)&&\(b=|
-                (?:
-                    b=String\.fromCharCode\(110\)|
-                    ([a-zA-Z0-9_$.]+)&&\(b="nn"\[\+\1\]
-                )
-                (?:
-                    ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
-                    (?:
-                        get\(b\)|
-                        [a-zA-Z0-9_$]+\[b\]\|\|null
-                    )\)&&\(c=|
-                \b([a-zA-Z0-9_$]+)=
-            )([a-zA-Z0-9_$]+)(?:\[(\d+)\])?\([a-zA-Z]\)
-            (?(2),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,\2\))""", Pattern.COMMENTS)
+    // DALAN: java.util.regex has no conditional "(?(var)...)" (yt-dlp) and the library that did (florianingerl regex) is GPL-2.0.
+    // Emulated with a marker group: group 2 is an empty group "()" that only participates when one of the first two
+    // (non-"var=") alternatives matched. The trailing "(?:\2|...)" then works because a backreference to a group that
+    // did not take part in the match fails, so it falls through to the ",x.set(...,\3)" branch (alternative 3, "var=").
+    // Groups: 1=str_idx, 2=empty marker, 3=var, 4=nfunc, 5=idx.
+    private val mNFuncPattern = Pattern.compile("""(?x)
+(?:
+  (?:
+    \.get\("n"\)\)&&\(b=|
+    (?:
+        b=String\.fromCharCode\(110\)|
+        ([a-zA-Z0-9_$.]+)&&\(b="nn"\[\+\1\]
+    )
+    (?:
+        ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+    (?:
+        get\(b\)|
+        [a-zA-Z0-9_$]+\[b\]\|\|null
+    )\)&&\(c=
+  )()|
+  \b([a-zA-Z0-9_$]+)=
+)([a-zA-Z0-9_$]+)(?:\[(\d+)\])?\([a-zA-Z]\)
+(?:\2|,[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,\3\))""", Pattern.COMMENTS)
     private val mNFuncPattern2 = Pattern.compile("""(?xs)
                 ;\s*([a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
                 \s*\{(?:(?!\};).)+?return\s*(["'])[\w-]+_w8_\1\s*\+\s*[a-zA-Z0-9_$]+""", Pattern.COMMENTS)
@@ -154,9 +161,9 @@ internal object NSigExtractor {
     private fun extractNFunctionName1(jsCode: String): String? { // NOTE: looong running code
         val nFuncMatcher = mNFuncPattern.matcher(jsCode)
 
-        if (nFuncMatcher.find() && nFuncMatcher.groupCount() >= 3) {
-            val funcName = nFuncMatcher.group(3) // nFuncMatcher.groupCount() - 1
-            val idx = if (nFuncMatcher.groupCount() >= 4) nFuncMatcher.group(4) else return funcName // nFuncMatcher.groupCount()
+        if (nFuncMatcher.find()) {
+            val funcName = nFuncMatcher.group(4) ?: return null // DALAN: group layout changed, see mNFuncPattern
+            val idx = nFuncMatcher.group(5) ?: return funcName // DALAN: no [idx] means funcName is the name (upstream fell back to extractNFunctionName2, or crashed on idx.toInt())
 
             val escapedFuncName = Pattern.quote(funcName)
 

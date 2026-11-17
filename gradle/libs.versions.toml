@@ -20,7 +20,6 @@ recyclerview = "1.1.0"
 disklrucache = "2.0.2"
 netcipher = "2.1.0"
 dnsjava = "2.1.9"
-regex = "1.1.11"
 webkit = "1.11.0"
 nanojson = "1.7"
 protobuf = "3.17.3"
@@ -54,7 +53,6 @@ recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "r
 disklrucache = { module = "com.jakewharton:disklrucache", version.ref = "disklrucache" }
 netcipher = { module = "info.guardianproject.netcipher:netcipher", version.ref = "netcipher" }
 dnsjava = { module = "dnsjava:dnsjava", version.ref = "dnsjava" }
-florianingerl-regex = { module = "com.github.florianingerl.util:regex", version.ref = "regex" }
 webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 nanojson = { module = "com.grack:nanojson", version.ref = "nanojson" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }

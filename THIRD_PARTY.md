@@ -33,12 +33,6 @@ SharedModules commit pinned above (`5475d31808139e21c0e55f4d3462481002afae63`, d
 source is vendored unmodified in this repository under `third_party/j2v8`; only the prebuilt `armeabi-v7a`
 `libj2v8.so` (which bundles V8) is a binary taken from SharedModules, the other ABIs were removed.
 
-### Open licensing issue: florianingerl regex
-`com.github.florianingerl.util:regex:1.1.11` (used only by `NSigExtractor` in `youtubeapi`) declares
-**GPL-2.0** in its Maven POM, with no linking exception. That is incompatible with shipping the APK under MIT as
-one combined work. It has to be replaced (e.g. with `java.util.regex` plus a hand-written recursion) or cleared
-with its author before wide distribution. Not changed in 0.1.1.
-
 Dropped from each module when vendoring: `src/test`, `src/androidTest`, `libs/*.jar`, Groovy `build.gradle`
 files, `.gitignore`, commons-io docs/site/build files, non-ARM j2v8 natives (x86, x86_64, arm64-v8a).
 Each module got a new `build.gradle.kts` (see `settings.gradle.kts`).
@@ -51,6 +45,7 @@ Each module got a new `build.gradle.kts` (see `settings.gradle.kts`).
 | 2 | every vendored `src/main/AndroidManifest.xml` | Removed the `package="..."` attribute (AGP 9 takes the namespace from `build.gradle.kts`). Mechanical, no XML comment possible on the removed attribute. |
 | 3 | every vendored module | `build.gradle` (Groovy) deleted, replaced by `build.gradle.kts`: `com.android.library`, compileSdk 37, minSdk 21, Java 17, `buildFeatures.buildConfig = true`, no flavors, lint non-fatal. `youtubeapi` depends directly on `:j2v8` (no flavors). `exoplayer/core` keeps the upstream `consumerProguardFiles`. |
 | 4 | `third_party/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeContentService.java` (`emitGroupsPartial(emitter, Pair)`) | `// DALAN:` The section-list paging loop now stops when the emitter is disposed (`!emitter.isDisposed()` in the loop condition plus a return right after each emission). Upstream keeps fetching the whole feed on a non-interruptible thread after the subscriber is gone. Paging could not be moved into `Repo` because `continueSectionList` is not exposed through `ContentService`. |
+| 5 | `third_party/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/playerdata/NSigExtractor.kt` | `// DALAN:` `mNFuncPattern` used `com.github.florianingerl.util:regex` only for the conditional `(?(2)...)`; that library is GPL-2.0, so it was dropped. The pattern now uses `java.util.regex`: an empty marker group `()` after the first two (non-`var=`) alternatives and a trailing `(?:\2\|...)` (a backreference to a group that did not participate fails, which emulates yt-dlp's `(?(var)...)`). Group numbers shifted (name = group 4, idx = group 5), and `extractNFunctionName1` now returns the name when there is no `[idx]` as yt-dlp does (upstream fell through to `extractNFunctionName2`, or crashed on `idx.toInt()` if a matching array assignment existed). |
 
 All other vendored Java/Kotlin sources are byte-for-byte upstream.
 
@@ -78,7 +73,7 @@ Taken from `SharedModules/constants.gradle`, pinned in `gradle/libs.versions.tom
 | androidx.media | 1.0.1 | needed by the vendored ExoPlayer `ui` module |
 | recyclerview | 1.1.0 | the only AndroidX UI library used by the app |
 | protobuf-javalite / protoc | 3.17.3 | as upstream |
-| florianingerl regex, nanojson, webkit | 1.1.11 / 1.7 / 1.11.0 | as upstream |
+| nanojson, webkit | 1.7 / 1.11.0 | as upstream |
 | **Bumped:** protobuf Gradle plugin | 0.9.5 -> **0.10.1** | 0.9.5 fails to apply under AGP 9.5 (`Cannot cast ... LibraryExtensionImpl to BaseExtension`) |
 | **Replaced:** okhttp-brotli 4.1.0 | -> `org.brotli:dec` 0.1.2 | okhttp-brotli 4.x drags OkHttp 4 in next to 3.12.13 and OkHttp 4 turns `HttpUrl.parse` into a compile error in `DohProviders.kt`. `UnzippingInterceptor` only needs `org.brotli.dec.BrotliInputStream`, which is what okhttp-brotli itself depended on. |
 | **Removed:** `org.chromium.net:cronet-embedded` | | see patch 1 |
@@ -105,4 +100,3 @@ From the POMs in the Gradle cache (versions in the table above and `gradle/libs.
 | dnsjava | BSD-2-Clause |
 | protobuf-javalite | BSD-3-Clause |
 | nanojson | no licence in the POM; the upstream repository (mmastrac/nanojson) is Apache-2.0 |
-| florianingerl regex | **GPL-2.0 per POM, see the open issue above** |

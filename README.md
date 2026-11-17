@@ -117,5 +117,4 @@ Or copy it to the device (LocalSend, USB, a download) and open it with "Install 
 - **APK size:** about 12 MB, most of it the V8 engine (`libj2v8.so`).
 
 ## Licence
-MIT; bundled components keep their own licences (see THIRD_PARTY.md). One dependency (a GPL-2.0 regex
-library used by the resolver) is still being resolved: see [#1](https://github.com/alkevintan/dalan/issues/1).
+MIT; bundled components keep their own licences (see THIRD_PARTY.md).

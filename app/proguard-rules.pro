@@ -33,7 +33,6 @@
 -keep interface retrofit2.** { *; }
 -keepclasseswithmembers class * { @retrofit2.http.* <methods>; }
 -keep class com.grack.nanojson.** { *; }
--keep class com.florianingerl.** { *; }
 -keep class org.brotli.** { *; }
 -keep class okhttp3.** { *; }
 -keep class okio.** { *; }
