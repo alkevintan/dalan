@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.SearchView
 import android.widget.SimpleCursorAdapter
 import com.aktivesolutions.dalan.R
+import com.aktivesolutions.dalan.data.Filters
 import com.aktivesolutions.dalan.data.Repo
 import io.reactivex.disposables.Disposable
 
@@ -35,6 +36,7 @@ class MainActivity : ThemedActivity() {
     private lateinit var tabBar: LinearLayout
     private val tabButtons = HashMap<Tab, Button>()
     private var tab = Tab.MUSIC
+    private var filtersSeen = Filters.version
     private var signedIn = false
     private val accountListener: () -> Unit = { onAccountChanged() }
     private var loadAction: Disposable? = null
@@ -102,6 +104,7 @@ class MainActivity : ThemedActivity() {
         super.onResume()
         if (recreating) return
         onAccountChanged()
+        if (filtersSeen != Filters.version) { filtersSeen = Filters.version; feed.reapplyFilters() }
     }
 
     private fun addTabButton(t: Tab) {
@@ -151,6 +154,7 @@ class MainActivity : ThemedActivity() {
 
     private fun load() {
         loadAction?.dispose()
+        feed.filterEnabled = tab != Tab.HISTORY // watch history is a record: never hide anything in it
         feed.showLoading(sections = tab != Tab.SUBS && tab != Tab.HISTORY)
         val source = when (tab) {
             Tab.HOME -> Repo.home()

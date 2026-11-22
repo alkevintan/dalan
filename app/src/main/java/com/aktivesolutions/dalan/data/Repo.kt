@@ -109,6 +109,11 @@ object Repo {
     private fun single(o: Observable<MediaGroup>): Observable<List<MediaGroup>> =
         ui(o.timeout(TIMEOUT_S, TimeUnit.SECONDS).map { listOf(it) })
 
+    /** Tells YouTube "Not interested" (signed-in feeds only). Fire and forget: the result is ignored. */
+    fun notInterested(feedbackToken: String) {
+        try { items.markAsNotInterestedObserve(feedbackToken).subscribeOn(Schedulers.io()).subscribe({ }, { }) } catch (_: Throwable) { }
+    }
+
     fun switchNextClient() = manager.switchNextClient()
     fun reloadPlayerResponse(videoId: String, token: String) = manager.reloadPlayerResponse(videoId, token)
 

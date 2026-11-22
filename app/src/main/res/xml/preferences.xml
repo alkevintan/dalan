@@ -47,6 +47,14 @@
             android:defaultValue="off"
             android:summary="%s" />
     </PreferenceCategory>
+    <PreferenceCategory android:key="cat_filters" android:title="@string/pref_filters_cat">
+        <CheckBoxPreference
+            android:key="filters_enabled"
+            android:title="@string/pref_filters_enabled"
+            android:summary="@string/pref_filters_enabled_sum"
+            android:defaultValue="true" />
+        <Preference android:key="filters" android:title="@string/pref_filters_manage" />
+    </PreferenceCategory>
     <Preference android:key="clear_cache" android:title="@string/pref_clear_cache" />
     <Preference android:key="about" android:title="@string/about" />
 </PreferenceScreen>

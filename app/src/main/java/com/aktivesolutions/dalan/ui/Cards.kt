@@ -34,6 +34,7 @@ class CardHolder(v: View) : RecyclerView.ViewHolder(v) {
 class CardAdapter(
     private val cardWidthPx: Int = 0,
     private val onClick: (MediaItem) -> Unit,
+    private val onLongClick: ((MediaItem) -> Unit)? = null,
 ) : RecyclerView.Adapter<CardHolder>() {
 
     private val items = ArrayList<MediaItem>()
@@ -43,12 +44,13 @@ class CardAdapter(
     }
 
     /**
-     * Replaces the content; when [newItems] merely extends the current list (the usual partial-feed update)
+     * Replaces the content; when [newItems] merely extends the current list (every current item is still there, same
+     * order; the usual partial-feed update)
      * only the new tail is inserted so the list does not jump.
      */
     fun update(newItems: List<MediaItem>) {
         val n = items.size
-        if (n > 0 && newItems.size >= n && newItems[0] === items[0] && newItems[n - 1] === items[n - 1]) {
+        if (n > 0 && newItems.size >= n && (0 until n).all { newItems[it] === items[it] }) {
             append(newItems.subList(n, newItems.size))
         } else setItems(newItems)
     }
@@ -84,6 +86,8 @@ class CardAdapter(
         val w = if (cardWidthPx > 0) cardWidthPx else 256
         ImageLoader.load(h.thumb, item.cardImageUrl, w, w * 9 / 16)
         h.itemView.setOnClickListener { onClick(item) }
+        val lc = onLongClick
+        if (lc != null) h.itemView.setOnLongClickListener { lc(item); true } else h.itemView.setOnLongClickListener(null)
     }
 
     override fun onViewRecycled(h: CardHolder) { ImageLoader.cancel(h.thumb) }

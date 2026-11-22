@@ -12,6 +12,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.aktivesolutions.dalan.R
+import com.aktivesolutions.dalan.data.Filters
 import com.aktivesolutions.dalan.data.Repo
 import com.aktivesolutions.dalan.player.Codecs
 
@@ -53,6 +54,7 @@ class SettingsActivity : ThemedActivity() {
                 if (Repo.isSignedIn()) confirmSignOut() else startActivity(Intent(activity, SignInActivity::class.java))
                 true
             }
+            findPreference("filters").setOnPreferenceClickListener { startActivity(Intent(activity, FiltersActivity::class.java)); true }
             findPreference("about").setOnPreferenceClickListener { showAbout(); true }
         }
 
@@ -66,6 +68,12 @@ class SettingsActivity : ThemedActivity() {
         override fun onResume() {
             super.onResume()
             refreshAccount()
+            refreshFilters()
+        }
+
+        private fun refreshFilters() {
+            val p: Preference = findPreference("filters") ?: return
+            p.summary = resources.getQuantityString(R.plurals.pref_filters_summary, Filters.activeCount(), Filters.activeCount())
         }
 
         private fun refreshAccount() {

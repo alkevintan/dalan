@@ -2,6 +2,7 @@ package com.aktivesolutions.dalan
 
 import android.app.Application
 import android.util.Log
+import com.aktivesolutions.dalan.data.Filters
 import com.aktivesolutions.dalan.player.Codecs
 import io.reactivex.exceptions.UndeliverableException
 import io.reactivex.plugins.RxJavaPlugins
@@ -33,6 +34,7 @@ class DalanApp : Application() {
 
         AppVisibility.register(this)
         ImageLoader.init(this)
+        Filters.init(this)
         Codecs.warmUp()
 
         // Same as SmartTube's RxHelper.setupGlobalErrorHandler: errors that arrive after a subscriber

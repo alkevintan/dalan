@@ -7,6 +7,7 @@ import android.view.MenuItem
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import com.aktivesolutions.dalan.R
+import com.aktivesolutions.dalan.data.Filters
 import com.aktivesolutions.dalan.data.Repo
 import io.reactivex.disposables.Disposable
 
@@ -16,6 +17,7 @@ class SearchActivity : ThemedActivity() {
     private lateinit var mini: MiniPlayer
     private var query = ""
     private var action: Disposable? = null
+    private var filtersSeen = Filters.version
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +50,11 @@ class SearchActivity : ThemedActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) { finish(); return true }
         return super.onOptionsItemSelected(item)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!recreating && filtersSeen != Filters.version) { filtersSeen = Filters.version; feed.reapplyFilters() }
     }
 
     override fun onStart() { super.onStart(); mini.onStart() }

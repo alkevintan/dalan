@@ -43,6 +43,10 @@
         <activity
             android:name=".ui.SettingsActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.FiltersActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false" />
 
         <activity
             android:name=".ui.PlayerActivity"

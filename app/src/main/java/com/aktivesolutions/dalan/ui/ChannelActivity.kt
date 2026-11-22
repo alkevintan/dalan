@@ -12,6 +12,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.aktivesolutions.dalan.R
+import com.aktivesolutions.dalan.data.Filters
 import com.aktivesolutions.dalan.data.Repo
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup
 import io.reactivex.Observable
@@ -24,6 +25,7 @@ class ChannelActivity : ThemedActivity() {
     private var channelId: String? = null
     private var isPlaylist = false
     private var action: Disposable? = null
+    private var filtersSeen = Filters.version
     private var headerHolder: PulseLayout? = null
     private var headerBar: android.view.View? = null
     private var pulseRowView: LinearLayout? = null
@@ -86,6 +88,7 @@ class ChannelActivity : ThemedActivity() {
         pulseRowView = pulseRow
 
         feed = FeedView(this)
+        feed.titleOnlyFilters = !isPlaylist // on a channel's own page its channel block / name rules would hide everything
         feed.onLoadingChanged = { loading ->
             val bar = headerBar
             if (loading) {
@@ -155,6 +158,11 @@ class ChannelActivity : ThemedActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) { finish(); return true }
         return super.onOptionsItemSelected(item)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!recreating && filtersSeen != Filters.version) { filtersSeen = Filters.version; feed.reapplyFilters() }
     }
 
     override fun onStart() { super.onStart(); mini.onStart() }

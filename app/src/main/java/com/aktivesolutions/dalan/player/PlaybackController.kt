@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.aktivesolutions.dalan.data.Filters
 import com.aktivesolutions.dalan.data.Repo
 import com.aktivesolutions.dalan.data.ResumeStore
 import com.aktivesolutions.dalan.data.Settings
@@ -351,11 +352,22 @@ class PlaybackController(
         open(next)
     }
 
+    /** Videos the user dismissed ("Not interested"): autoplay never picks them this session. */
+    private val skipped = HashSet<String>()
+
+    fun skipForAutoplay(videoId: String) { skipped.add(videoId) }
+
     private fun nextVideoId(): String? {
         val m = metadata ?: return null
-        m.nextVideo?.videoId?.let { return it }
-        return m.suggestions?.asSequence()?.flatMap { it.mediaItems?.asSequence() ?: emptySequence() }
-            ?.firstOrNull { !it.videoId.isNullOrEmpty() && it.videoId != videoId }?.videoId
+        val suggestions = m.suggestions?.asSequence()?.flatMap { it.mediaItems?.asSequence() ?: emptySequence() }
+            ?.filter { !it.videoId.isNullOrEmpty() }?.toList() ?: emptyList()
+        // Autoplay never lands on a video the content filters hide. m.nextVideo carries no author / channel id, so
+        // also test the suggestion entry for the same video, which does.
+        val next = m.nextVideo
+        val nextId = next?.videoId
+        if (next != null && !nextId.isNullOrEmpty() && nextId !in skipped && !Filters.isHidden(next) &&
+            suggestions.none { it.videoId == nextId && Filters.isHidden(it) }) return nextId
+        return suggestions.firstOrNull { it.videoId != videoId && it.videoId !in skipped && !Filters.isHidden(it) }?.videoId
     }
 
     fun savePosition() {

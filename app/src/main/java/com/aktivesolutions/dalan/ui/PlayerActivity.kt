@@ -31,6 +31,7 @@ import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aktivesolutions.dalan.R
+import com.aktivesolutions.dalan.data.Filters
 import com.aktivesolutions.dalan.player.PlaybackController
 import com.aktivesolutions.dalan.player.PlaybackService
 import com.aktivesolutions.dalan.util.VideoUrlParser
@@ -128,6 +129,8 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
 
     // ------------------------------------------------------------------ lifecycle
 
+    private var filtersSeen = Filters.version
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         restored = savedInstanceState != null
@@ -172,6 +175,11 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
             service?.close() // don't leave an empty started service behind
             finish()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (filtersSeen != Filters.version) { filtersSeen = Filters.version; infoAdapter.refilter() }
     }
 
     override fun onStart() {
@@ -547,13 +555,15 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
 
     private inner class InfoAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private var meta: MediaItemMetadata? = null
+        private var rawRelated: List<MediaItem> = emptyList()
         private var related: List<MediaItem> = emptyList()
+        private val dismissed = ArrayList<MediaItem>()
         private var descExpanded = false
 
         /** True from opening a video until its metadata (or an error) arrives: the panel shows a skeleton. */
         private var loading = true
 
-        fun reset() { meta = null; related = emptyList(); descExpanded = false; loading = true; notifyDataSetChanged() }
+        fun reset() { meta = null; rawRelated = emptyList(); related = emptyList(); dismissed.clear(); descExpanded = false; loading = true; notifyDataSetChanged() }
 
         /** The video failed to load: stop pretending metadata is coming and show what is known. */
         fun failed() { if (loading) { loading = false; notifyDataSetChanged() } }
@@ -561,7 +571,13 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
         fun setMetadata(m: MediaItemMetadata) {
             meta = m
             loading = false
-            related = m.suggestions.orEmpty().flatMap { it.mediaItems.orEmpty() }.filter { !it.videoId.isNullOrEmpty() }
+            rawRelated = m.suggestions.orEmpty().flatMap { it.mediaItems.orEmpty() }.filter { !it.videoId.isNullOrEmpty() }
+            refilter()
+        }
+
+        /** Hides related videos the content filters (or "Not interested") remove. */
+        fun refilter() {
+            related = Filters.filter(rawRelated).let { l -> if (dismissed.isEmpty()) l else l.filter { x -> dismissed.none { it === x } } }
             notifyDataSetChanged()
         }
 
@@ -587,6 +603,10 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
                 h.badge.visibility = if (badge.isEmpty()) View.GONE else View.VISIBLE
                 ImageLoader.load(h.thumb, item.cardImageUrl, 160, 90)
                 h.itemView.setOnClickListener { item.videoId?.let { id -> Nav.openVideo(this@PlayerActivity, id) } }
+                h.itemView.setOnLongClickListener {
+                    FilterUi.showItemMenu(this@PlayerActivity, item, { refilter() }, { dismissed.add(it); it.videoId?.let { v -> controller?.skipForAutoplay(v) }; refilter() })
+                    true
+                }
             }
         }
 

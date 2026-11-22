@@ -35,6 +35,12 @@ No Google account or Google Play Services is needed (signing in is optional).
 - **Resume position** for each video (300 most recent), and **autoplay** of the next related video.
 - **Opens links:** `youtube.com/watch`, `youtu.be`, `m.youtube.com` and `/shorts/` URLs, plus text
   shared from other apps.
+- **Content filters:** Settings > Content filters. Hide videos whose title or channel matches words you choose
+  (whole words, accent- and case-insensitive; `zelda*` matches a prefix; several words match as a phrase), for
+  example to avoid spoilers. Filters can be limited to titles or channel names and can expire. Long-press any
+  video to hide its channel, start a filter from its title, or tell YouTube "Not interested" (signed in).
+  Filtering applies to feeds, search, channel pages, related videos and autoplay, never to History or to a video
+  you open yourself.
 - **Settings:** account (sign in / out), max quality (360–1080p), allow 60 fps, prefer VP9 (shown only when the device has a
   hardware VP9 decoder), background play, autoplay next, caption language, theme, clear the image cache, licences.
 

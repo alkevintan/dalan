@@ -130,4 +130,51 @@
         <item>tr</item>
         <item>id</item>
     </string-array>
+    <string name="pref_filters_cat">Content filters</string>
+    <string name="pref_filters_enabled">Hide matching videos</string>
+    <string name="pref_filters_enabled_sum">Applies to feeds, search, channel pages, related videos and autoplay</string>
+    <string name="pref_filters_manage">Manage filters</string>
+    <plurals name="pref_filters_summary">
+        <item quantity="one">%d active filter</item>
+        <item quantity="other">%d active filters</item>
+    </plurals>
+    <string name="filters_title">Content filters</string>
+    <string name="filters_empty">Hide videos whose title or channel mentions words you choose, for example a movie or game you don\'t want spoiled. Tap Add filter to start, or long-press any video.</string>
+    <string name="filters_all_hidden">Everything here is hidden by your content filters.</string>
+    <string name="filter_add">Add filter</string>
+    <string name="filter_edit">Edit filter</string>
+    <string name="filter_blocked_channels">Blocked channels</string>
+    <plurals name="filter_channels_count">
+        <item quantity="one">%d channel</item>
+        <item quantity="other">%d channels</item>
+    </plurals>
+    <string name="filter_scope_both">Title and channel</string>
+    <string name="filter_scope_title">Title only</string>
+    <string name="filter_scope_channel">Channel name only</string>
+    <string name="filter_expires">Expires %1$s</string>
+    <string name="filter_expired">Expired</string>
+    <string name="filter_name_hint">Name (optional)</string>
+    <string name="filter_terms_hint">Words to hide, one per line or comma-separated. Use * at the end for a prefix, e.g. zelda*. Several words match as a phrase.</string>
+    <string name="filter_scope_label">Match in</string>
+    <string name="filter_expiry_label">Expires</string>
+    <string name="filter_expiry_never">Never</string>
+    <string name="filter_expiry_week">In 1 week</string>
+    <string name="filter_expiry_month">In 1 month</string>
+    <string name="filter_expiry_3months">In 3 months</string>
+    <string name="filter_expiry_pick">Pick date…</string>
+    <string name="filter_expiry_until">Until %1$s</string>
+    <string name="filter_expiry_expired_on">Expired on %1$s</string>
+    <string name="filter_channel_hidden_paused">Added to \u201c%1$s\u201d (filters are paused in Settings)</string>
+    <string name="filter_load_more">Load more</string>
+    <string name="filter_blocked_label">Blocked channels</string>
+    <string name="filter_remove_channel">Remove</string>
+    <string name="filter_need_something">Enter at least one word, or keep a blocked channel.</string>
+    <string name="filter_save">Save</string>
+    <string name="filter_delete_title">Delete filter?</string>
+    <string name="filter_delete_msg">\"%1$s\" will stop hiding videos.</string>
+    <string name="delete">Delete</string>
+    <string name="filter_hide_channel">Hide channel \u201c%1$s\u201d</string>
+    <string name="filter_hide_like">Hide videos like this…</string>
+    <string name="filter_not_interested">Not interested</string>
+    <string name="filter_channel_hidden">Added to \u201c%1$s\u201d</string>
 </resources>
