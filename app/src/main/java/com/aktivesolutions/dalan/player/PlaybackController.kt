@@ -43,9 +43,15 @@ class PlaybackController(
         fun onError(message: String, retryable: Boolean)
         fun onErrorCleared()
         fun onTracksChanged()
+        /** The metadata request failed: the UI should stop showing a loading skeleton. */
+        fun onMetadataFailed() {}
     }
 
     var listener: Listener? = null
+
+    /** True when the metadata request for the current video failed. */
+    var metadataFailed = false
+        private set
 
     /** Service-side hook: called when the video title / author / thumbnail become known. */
     var metadataObserver: (() -> Unit)? = null
@@ -119,6 +125,7 @@ class PlaybackController(
         if (id != videoId) captionsFailed = false
         videoId = id
         metadata = null
+        metadataFailed = false
         formatInfo = null
         lastError = null
         sessionMaxHeight = null
@@ -132,7 +139,10 @@ class PlaybackController(
         metaAction?.dispose()
         metaAction = Repo.metadata(id).subscribe({ m ->
             if (id == videoId) { metadata = m; listener?.onMetadata(m); metadataObserver?.invoke() }
-        }, { Log.w(TAG, "metadata failed", it) })
+        }, {
+            Log.w(TAG, "metadata failed", it)
+            if (id == videoId) { metadataFailed = true; listener?.onMetadataFailed() }
+        })
     }
 
     /** Re-resolves the current video (after an error) and continues at [positionMs]. */

@@ -5,7 +5,7 @@ devices: phones, tablets and TV boxes that the official app has dropped, or that
 
 It resolves streams with SmartTube's [MediaServiceCore](https://github.com/yuliskov/MediaServiceCore)
 and plays them through SmartTube's ExoPlayer fork, which handles DASH, HLS and YouTube's SABR protocol.
-No Google account or Google Play Services is needed.
+No Google account or Google Play Services is needed (signing in is optional).
 
 - Package `com.aktivesolutions.dalan`, version 0.1.1
 - minSdk 21 (Android 5.0), targetSdk 25
@@ -13,21 +13,30 @@ No Google account or Google Play Services is needed.
   32-bit apps, which is most of them before about 2023. It won't run on 64-bit-only devices or on x86.
 
 ## Features (0.1)
-- **Feeds that work without an account:** Music (the default), Gaming, News, Sports and Live. A Home tab
+- **Feeds that work without an account:** Music (the default when signed out; Home is the default when signed in), Gaming, News, Sports and Live. A Home tab
   appears only when Home returns rows (it's empty when you aren't signed in). Feeds show rows of cards, or
   a grid with infinite scroll.
+- **Sign in with a code:** Settings > Account shows a code to enter at `yt.be/activate` (the YouTube TV
+  device flow). Once signed in, Home, Subscriptions and History tabs appear. Sign out from the same place.
+- **Light and dark theme:** Settings > Appearance > Theme (System default, Light or Dark). System follows the
+  device's night mode on Android 10+ and is dark on older versions. The tan and near-black brand colours are
+  used for accents; the player video area stays black in both themes. A change applies when you return to the
+  app, with no restart.
+- **Skeleton loading:** feeds, channel pages, search and the player's info panel show placeholders shaped like
+  the content (rows of cards, a grid, title and related list) with a cheap alpha pulse instead of a spinner.
 - **Search** with suggestions, **channel pages** (an uploads grid) and **related videos**.
 - **Player:**
   - Landscape: the video fills the screen. Portrait: a 16:9 player with the title, channel, views and
     date, an expandable description and the related list below. Landscape split view: 65/35.
-  - Seek bar with buffered position, ±10 s, quality, captions (WebVTT), speed 0.5–2×, fullscreen.
+  - Seek bar with buffered position and glyph controls: ±10 s, quality, captions (WebVTT; the icon fills when on),
+    speed 0.5–2× (a text label) and fullscreen.
 - **Background audio** through a foreground service, with a MediaStyle notification and a MediaSession
   (lock-screen and media-key control). It handles audio focus and pauses when headphones are unplugged.
 - **Resume position** for each video (300 most recent), and **autoplay** of the next related video.
 - **Opens links:** `youtube.com/watch`, `youtu.be`, `m.youtube.com` and `/shorts/` URLs, plus text
   shared from other apps.
-- **Settings:** max quality (360–1080p), allow 60 fps, prefer VP9 (shown only when the device has a
-  hardware VP9 decoder), background play, autoplay next, caption language, clear the image cache, licences.
+- **Settings:** account (sign in / out), max quality (360–1080p), allow 60 fps, prefer VP9 (shown only when the device has a
+  hardware VP9 decoder), background play, autoplay next, caption language, theme, clear the image cache, licences.
 
 ### Built for weak hardware
 - **Track selection follows what the device can decode in hardware.** H.264 comes first. VP9 is used only
@@ -99,13 +108,17 @@ adb install -r Dalan-0.1.1.apk
 Or copy it to the device (LocalSend, USB, a download) and open it with "Install unknown apps" allowed.
 
 ## Known limits
-- **No sign-in in 0.1,** so no subscriptions, history or likes. Playlists open as a plain grid.
+- **Sign-in is read-only browsing:** Home, Subscriptions and History only; no likes, comments or playlist
+  management. The refresh token is stored unencrypted in a file in the app's internal storage by
+  MediaServiceCore (`allowBackup` is off). Dalan doesn't report watch history, so videos watched in Dalan
+  won't appear in History. Playlists open as a plain grid.
 - **The resolver depends on YouTube internals and *will* break when YouTube changes** (n-sig, PoToken,
   client versions, SABR). To refresh it:
   1. Clone newer MediaServiceCore, SharedModules and SmartTube.
   2. Copy the modules listed in `THIRD_PARTY.md` over `third_party/`.
   3. Re-apply the patches listed there: currently the `CronetManager` stub, the `isDisposed` check in
-     `YouTubeContentService`, and the build files.
+     `YouTubeContentService`, the `NSigExtractor` regex, the lockup `getType()` handling in
+     `CommonHelper`/`CommonItems`, and the build files.
   4. Update the commits in `THIRD_PARTY.md`, rebuild, and run the smoke test.
 
   SmartTube's player fork (`exoplayer/`) and MediaServiceCore are developed in lockstep, so update them

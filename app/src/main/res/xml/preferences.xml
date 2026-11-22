@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:key="cat_account" android:title="@string/pref_account">
+        <Preference android:key="account" android:title="@string/pref_sign_in" android:summary="@string/pref_sign_in_sum" />
+    </PreferenceCategory>
+    <PreferenceCategory android:key="cat_appearance" android:title="@string/pref_appearance">
+        <ListPreference
+            android:key="theme"
+            android:title="@string/pref_theme"
+            android:entries="@array/theme_entries"
+            android:entryValues="@array/theme_values"
+            android:defaultValue="system"
+            android:summary="%s" />
+    </PreferenceCategory>
     <PreferenceCategory android:key="cat_playback" android:title="@string/pref_playback">
         <ListPreference
             android:key="max_quality"

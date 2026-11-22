@@ -176,6 +176,12 @@ private const val TILE_CONTENT_TYPE_PLAYLIST = "TILE_CONTENT_TYPE_PLAYLIST"
 private const val TILE_CONTENT_TYPE_VIDEO = "TILE_CONTENT_TYPE_VIDEO"
 private const val TILE_CONTENT_TYPE_EDU = "TILE_CONTENT_TYPE_EDU" // a search query tile in Home section
 
+// DALAN: 'lockupViewModel.contentType' values (TV search now returns lockups):
+private const val LOCKUP_CONTENT_TYPE_VIDEO = "LOCKUP_CONTENT_TYPE_VIDEO"
+private const val LOCKUP_CONTENT_TYPE_SHORT = "LOCKUP_CONTENT_TYPE_SHORT"
+private const val LOCKUP_CONTENT_TYPE_CHANNEL = "LOCKUP_CONTENT_TYPE_CHANNEL"
+private const val LOCKUP_CONTENT_TYPE_PLAYLIST = "LOCKUP_CONTENT_TYPE_PLAYLIST"
+
 // 'tileRenderer.style' values:
 private const val TILE_STYLE_DEFAULT = "TILE_STYLE_YTLR_DEFAULT"
 private const val TILE_STYLE_SHORTS = "TILE_STYLE_YTLR_SHORTS"
@@ -271,6 +277,7 @@ internal fun LockupItem.getSubTitle() = YouTubeHelper.createInfo(
 internal fun LockupItem.getVideoId() = rendererContext?.getVideoId()
 internal fun LockupItem.getPlaylistId() = rendererContext?.getPlaylistId()
 internal fun LockupItem.getThumbnails() = getThumbnailView()?.image
+internal fun LockupItem.getContentType() = contentType
 internal fun LockupItem.getBadgeText() = getBadge()?.text
 internal fun LockupItem.isLive() = Helpers.equalsAny(getBadge()?.badgeStyle, BADGE_STYLE_LIVE, LOCKUP_BADGE_STYLE_LIVE)
 internal fun LockupItem.getPercentWatched() = getOverlays()?.firstNotNullOfOrNull {
@@ -315,6 +322,18 @@ internal fun ItemWrapper.getType(): Int {
             TILE_CONTENT_TYPE_VIDEO -> MediaItem.TYPE_VIDEO
             else -> MediaItem.TYPE_UNDEFINED
         }
+    // DALAN: TV search returns results as lockupViewModel with a contentType. Channel/playlist need a
+    // browseEndpoint id to open; a playlist lockup that taps into a watchEndpoint (mix) keeps playing its video.
+    val lockup = getLockupItem()
+    if (lockup != null) {
+        val hasBrowseId = lockup.getChannelId() != null
+        return when {
+            lockup.getContentType() == LOCKUP_CONTENT_TYPE_CHANNEL && hasBrowseId -> MediaItem.TYPE_CHANNEL
+            lockup.getContentType() == LOCKUP_CONTENT_TYPE_PLAYLIST && hasBrowseId -> MediaItem.TYPE_PLAYLIST
+            lockup.getVideoId() != null -> MediaItem.TYPE_VIDEO
+            else -> MediaItem.TYPE_UNDEFINED
+        }
+    }
 
     return MediaItem.TYPE_UNDEFINED
 }

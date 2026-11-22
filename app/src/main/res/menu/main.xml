@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/action_search" android:title="@string/search_hint"
+        android:icon="@drawable/ic_search"
         android:showAsAction="always|collapseActionView"
         android:actionViewClass="android.widget.SearchView" />
-    <item android:id="@+id/action_refresh" android:title="@string/refresh" android:showAsAction="ifRoom" android:icon="@android:drawable/ic_menu_rotate" />
-    <item android:id="@+id/action_settings" android:title="@string/settings" android:showAsAction="never" />
+    <item android:id="@+id/action_refresh" android:title="@string/refresh" android:showAsAction="ifRoom" android:icon="@drawable/ic_refresh" />
+    <item android:id="@+id/action_settings" android:title="@string/settings" android:showAsAction="ifRoom" android:icon="@drawable/ic_settings" />
 </menu>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dalan ("watch" in Bikol): play button. Adaptive foreground (108 viewport, 66 safe zone). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+        <!-- Tan disc with a black rounded play triangle (nudged right for optical centring) -->
+        <path android:fillColor="@color/launcher_tan"
+            android:pathData="M32,54 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0z" />
+        <path android:fillColor="@color/launcher_black" android:strokeColor="@color/launcher_black"
+            android:strokeWidth="3" android:strokeLineJoin="round"
+            android:pathData="M49,44 L49,64 L66,54z" />
+</vector>

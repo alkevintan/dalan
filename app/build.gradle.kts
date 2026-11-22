@@ -12,8 +12,8 @@ android {
         applicationId = "com.aktivesolutions.dalan"
         minSdk = 21
         targetSdk = 25
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.1.2"
         ndk { abiFilters += "armeabi-v7a" }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

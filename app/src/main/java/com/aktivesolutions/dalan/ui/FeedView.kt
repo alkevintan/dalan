@@ -25,7 +25,10 @@ import io.reactivex.disposables.Disposable
  */
 class FeedView(context: Context) : FrameLayout(context) {
     private val recycler = RecyclerView(context)
-    private val progress = ProgressBar(context)
+    private val skeletonHolder = FrameLayout(context) // opaque, so a stale list behind it never shows through
+    private var skeleton: PulseLayout? = null
+    private var skeletonKey = ""
+    private val moreSpinner = ProgressBar(context)
     private val message = TextView(context)
     private val retry = Button(context)
     private val errorBox = LinearLayout(context)
@@ -45,6 +48,9 @@ class FeedView(context: Context) : FrameLayout(context) {
     private var onRetry: (() -> Unit)? = null
     private var flat = true
 
+    /** Called with true when the skeleton is shown and false when content, an error or the empty state replaces it. */
+    var onLoadingChanged: ((Boolean) -> Unit)? = null
+
     init {
         recycler.setHasFixedSize(false)
         recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -59,11 +65,18 @@ class FeedView(context: Context) : FrameLayout(context) {
             }
         })
         addView(recycler, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        addView(progress, LayoutParams(dp(context, 48), dp(context, 48), Gravity.CENTER))
+        skeletonHolder.setBackgroundColor(context.themeColor(R.attr.dalanBg))
+        skeletonHolder.visibility = View.GONE
+        skeletonHolder.isClickable = true // swallow touches so nothing underneath can be tapped while loading
+        skeletonHolder.contentDescription = context.getString(R.string.loading)
+        addView(skeletonHolder, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        moreSpinner.visibility = View.GONE
+        addView(moreSpinner, LayoutParams(dp(context, 32), dp(context, 32), Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = dp(context, 8) })
 
         message.gravity = Gravity.CENTER
-        message.setTextColor(0xFFFFFFFF.toInt())
+        message.setTextColor(context.themeColor(R.attr.dalanTextPrimary))
         retry.setText(R.string.retry)
+        retry.setStartGlyph(R.drawable.ic_refresh)
         retry.setOnClickListener { onRetry?.invoke() }
         errorBox.orientation = LinearLayout.VERTICAL
         errorBox.gravity = Gravity.CENTER_HORIZONTAL
@@ -77,16 +90,42 @@ class FeedView(context: Context) : FrameLayout(context) {
         if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 4 else 3
 
     /** Call from Activity.onConfigurationChanged. */
-    fun updateSpan() { grid.spanCount = spanCount(); sectionsAdapter.notifyDataSetChanged() }
+    fun updateSpan() {
+        grid.spanCount = spanCount(); sectionsAdapter.notifyDataSetChanged()
+        if (skeletonHolder.visibility == View.VISIBLE) showSkeleton(skeletonKey.startsWith("s"))
+    }
 
-    fun showLoading() {
+    /** Skeleton placeholders shaped like the content to come: titled rows ([sections]) or a grid. */
+    fun showLoading(sections: Boolean = false) {
         hasContent = false
-        progress.visibility = View.VISIBLE
+        moreAction?.dispose(); loadingMore = false
         errorBox.visibility = View.GONE
+        moreSpinner.visibility = View.GONE
+        recycler.visibility = View.INVISIBLE // a stale list must not stay live (touch / accessibility) under the skeleton
+        showSkeleton(sections)
+    }
+
+    private fun showSkeleton(sections: Boolean) {
+        val key = if (sections) "s${resources.displayMetrics.widthPixels}" else "g${spanCount()}"
+        if (key != skeletonKey || skeleton == null) {
+            skeleton?.let { skeletonHolder.removeView(it) } // detaching stops its animator
+            val content = if (sections) Skeleton.sections(context) else Skeleton.grid(context, spanCount())
+            skeleton = Skeleton.pulse(context, content).also { skeletonHolder.addView(it) }
+            skeletonKey = key
+        }
+        val wasHidden = skeletonHolder.visibility != View.VISIBLE
+        skeletonHolder.visibility = View.VISIBLE
+        if (wasHidden) onLoadingChanged?.invoke(true)
+    }
+
+    private fun hideSkeleton() {
+        if (skeletonHolder.visibility == View.GONE) return
+        skeletonHolder.visibility = View.GONE // PulseLayout stops its animator when it is no longer shown
+        onLoadingChanged?.invoke(false)
     }
 
     fun showError(text: String?, retryAction: () -> Unit) {
-        progress.visibility = View.GONE
+        hideSkeleton()
         message.text = if (text.isNullOrBlank()) context.getString(R.string.error_generic) else text
         retry.visibility = View.VISIBLE
         onRetry = retryAction
@@ -94,7 +133,7 @@ class FeedView(context: Context) : FrameLayout(context) {
     }
 
     fun showEmpty() {
-        progress.visibility = View.GONE
+        hideSkeleton()
         message.setText(R.string.empty)
         retry.visibility = View.GONE
         errorBox.visibility = View.VISIBLE
@@ -109,9 +148,10 @@ class FeedView(context: Context) : FrameLayout(context) {
     fun showGroups(groups: List<MediaGroup>, sections: Boolean) {
         val nonEmpty = groups.filter { !it.mediaItems.isNullOrEmpty() }
         if (nonEmpty.isEmpty()) { if (!hasContent) showEmpty(); return }
-        if (!hasContent) { moreAction?.dispose(); loadingMore = false; loadFailed = false; endReached = false }
+        if (!hasContent) { moreAction?.dispose(); loadingMore = false; moreSpinner.visibility = View.GONE; loadFailed = false; endReached = false }
         hasContent = true
-        progress.visibility = View.GONE
+        recycler.visibility = View.VISIBLE
+        hideSkeleton()
         errorBox.visibility = View.GONE
         if (sections) {
             // Titled rows (one per group). Partial updates only add / refresh rows: no new LayoutManager or adapter.
@@ -144,6 +184,7 @@ class FeedView(context: Context) : FrameLayout(context) {
         val g = lastGroup ?: return
         if (g.nextPageKey == null) { endReached = true; return }
         loadingMore = true
+        moreSpinner.visibility = View.VISIBLE
         var got = false
         moreAction = Repo.continueGroup(g).subscribe({ next ->
             got = true
@@ -155,16 +196,18 @@ class FeedView(context: Context) : FrameLayout(context) {
                 endReached = true // end of feed
             }
             loadingMore = false
+            moreSpinner.visibility = View.GONE
             recycler.post { maybeLoadMore() }
         }, {
             loadingMore = false
+            moreSpinner.visibility = View.GONE
             loadFailed = true // keep lastGroup: scrolling again retries
         }, {
-            if (!got) { loadingMore = false; endReached = true }
+            if (!got) { loadingMore = false; moreSpinner.visibility = View.GONE; endReached = true }
         })
     }
 
-    fun dispose() { moreAction?.dispose() }
+    fun dispose() { moreAction?.dispose(); skeleton?.let { skeletonHolder.removeView(it) } }
 }
 
 /** Vertical list of rows: section title + horizontal card row. */
@@ -198,7 +241,7 @@ class SectionsAdapter(private val context: Context, private val onClick: (MediaI
         root.orientation = LinearLayout.VERTICAL
         root.layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         val title = TextView(context)
-        title.setTextColor(0xFFFFFFFF.toInt())
+        title.setTextColor(context.themeColor(R.attr.dalanTextPrimary))
         title.textSize = 16f
         title.setPadding(dp(context, 10), dp(context, 8), dp(context, 10), dp(context, 2))
         val row = RecyclerView(context)

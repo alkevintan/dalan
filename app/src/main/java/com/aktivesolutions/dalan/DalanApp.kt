@@ -10,6 +10,8 @@ import java.net.SocketException
 import com.aktivesolutions.dalan.ui.ImageLoader
 import com.liskovsoft.googlecommon.common.locale.LocaleManager
 import com.liskovsoft.sharedutils.prefs.GlobalPreferences
+import com.liskovsoft.youtubeapi.service.YouTubeSignInService
+import com.liskovsoft.youtubeapi.service.internal.YouTubeAccountManager
 
 class DalanApp : Application() {
     override fun onCreate() {
@@ -25,7 +27,11 @@ class DalanApp : Application() {
         // unhold() just makes sure a stale instance is rebuilt after the context exists.
         GlobalPreferences.instance(this)
         LocaleManager.unhold()
+        // The sign-in service restores accounts on a background thread; do it synchronously (idempotent)
+        // so Repo.isSignedIn() is right as soon as MainActivity starts.
+        try { YouTubeAccountManager.instance(YouTubeSignInService.instance()).init() } catch (e: Throwable) { Log.w("DalanApp", "account restore failed", e) }
 
+        AppVisibility.register(this)
         ImageLoader.init(this)
         Codecs.warmUp()
 

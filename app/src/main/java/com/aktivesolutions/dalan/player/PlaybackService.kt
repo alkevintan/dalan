@@ -62,6 +62,19 @@ class PlaybackService : Service() {
     private var wifiLock: WifiManager.WifiLock? = null
     private var sessionTick = false
     private var lastMetaKey: String? = null
+    private val stateObservers = ArrayList<() -> Unit>()
+
+    /** True after the session was closed while clients were still bound (the service lingers until they unbind). */
+    var closed = false
+        private set
+
+    /** Main-thread only. Called on any playback state / metadata change and when the session closes. */
+    fun addStateObserver(fn: () -> Unit) { if (fn !in stateObservers) stateObservers.add(fn) }
+    fun removeStateObserver(fn: () -> Unit) { stateObservers.remove(fn) }
+    private fun notifyObservers() { for (o in stateObservers.toList()) o() }
+
+    /** Closes the session from inside the app (same as the notification's close action). */
+    fun close() = closeService()
 
     private val playerListener = object : Player.EventListener {
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) = refresh()
@@ -69,7 +82,7 @@ class PlaybackService : Service() {
         override fun onPositionDiscontinuity(reason: Int) = updateSession()
         override fun onSeekProcessed() = updateSession()
         override fun onTimelineChanged(timeline: Timeline, manifest: Any?, reason: Int) {
-            updateMetadata(); updateSession()
+            updateMetadata(); updateSession(); notifyObservers()
         }
     }
 
@@ -83,6 +96,7 @@ class PlaybackService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         val selector = DalanTrackSelector()
         val renderers = DefaultRenderersFactory(this)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
@@ -114,6 +128,7 @@ class PlaybackService : Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action != ACTION_CLOSE) closed = false
         when (intent?.action) {
             ACTION_TOGGLE -> player.playWhenReady = !player.playWhenReady
             ACTION_CLOSE -> closeService()
@@ -129,7 +144,9 @@ class PlaybackService : Service() {
         session.isActive = false
         stopForeground(true)
         inForeground = false
+        closed = true
         stopSelf()
+        notifyObservers()
     }
 
     private fun isActivelyPlaying(): Boolean =
@@ -200,6 +217,10 @@ class PlaybackService : Service() {
     }
 
     private fun refresh() {
+        try { refreshInternal() } finally { notifyObservers() }
+    }
+
+    private fun refreshInternal() {
         val playing = isActivelyPlaying()
         if (playing && !session.isActive) session.isActive = true
         updateLocks()
@@ -252,6 +273,8 @@ class PlaybackService : Service() {
     }
 
     override fun onDestroy() {
+        if (instance === this) instance = null
+        stateObservers.clear()
         handler.removeCallbacksAndMessages(null)
         releaseLocks()
         try { unregisterReceiver(noisyReceiver) } catch (_: Exception) {}
@@ -264,6 +287,10 @@ class PlaybackService : Service() {
     }
 
     companion object {
+        /** The running service, if any. Main-thread only; set in onCreate, cleared in onDestroy. */
+        @JvmStatic var instance: PlaybackService? = null
+            private set
+
         const val ACTION_TOGGLE = "com.aktivesolutions.dalan.TOGGLE"
         const val ACTION_CLOSE = "com.aktivesolutions.dalan.CLOSE"
         private const val CHANNEL_ID = "playback"

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Press feedback for the player controls: they always sit on a dark scrim, so the ripple is white in both themes. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="#44FFFFFF" />

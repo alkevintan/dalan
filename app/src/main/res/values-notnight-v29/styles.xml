@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Dalan" parent="Theme.Dalan.Light" />
+    <style name="Theme.Dalan.Player" parent="Theme.Dalan.Player.Light" />
+</resources>

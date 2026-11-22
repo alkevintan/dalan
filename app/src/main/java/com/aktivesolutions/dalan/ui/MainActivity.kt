@@ -20,20 +20,23 @@ import com.aktivesolutions.dalan.data.Repo
 import io.reactivex.disposables.Disposable
 
 /**
- * Browse screen with a search box. Tabs are topic feeds that work without an account (Music, Gaming,
+ * Browse screen with a search box (signed in: Home, Subscriptions and History tabs lead and Home is the default; signed out: Music is the default). Tabs are topic feeds that work without an account (Music, Gaming,
  * News, Sports, Live); Home is added in front only when it returns rows (a logged-out Home is empty by
  * design). The default tab is Music.
  */
-class MainActivity : Activity() {
+class MainActivity : ThemedActivity() {
     private enum class Tab(val label: Int) {
-        HOME(R.string.home), MUSIC(R.string.music), GAMING(R.string.gaming), NEWS(R.string.news),
+        HOME(R.string.home), SUBS(R.string.subscriptions), HISTORY(R.string.history), MUSIC(R.string.music), GAMING(R.string.gaming), NEWS(R.string.news),
         SPORTS(R.string.sports), LIVE(R.string.live)
     }
 
     private lateinit var feed: FeedView
+    private lateinit var mini: MiniPlayer
     private lateinit var tabBar: LinearLayout
     private val tabButtons = HashMap<Tab, Button>()
     private var tab = Tab.MUSIC
+    private var signedIn = false
+    private val accountListener: () -> Unit = { onAccountChanged() }
     private var loadAction: Disposable? = null
     private var homeProbe: Disposable? = null
     private var suggestAction: Disposable? = null
@@ -43,7 +46,6 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setTheme(R.style.Theme_Dalan)
         title = getString(R.string.app_name)
 
         val root = LinearLayout(this)
@@ -55,14 +57,51 @@ class MainActivity : Activity() {
         feed = FeedView(this)
         root.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(feed, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        mini = MiniPlayer(this)
+        root.addView(mini.view)
         setContentView(root)
 
         val saved = savedInstanceState?.getString("tab")?.let { n -> Tab.values().firstOrNull { it.name == n } }
-        tab = saved ?: Tab.MUSIC
-        for (t in Tab.values()) if (t != Tab.HOME) addTabButton(t)
-        if (tab == Tab.HOME) addTabButton(Tab.HOME) else probeHome()
-        updateTabs()
+        signedIn = Repo.isSignedIn()
+        tab = saved ?: defaultTab()
+        buildTabs()
         load()
+        Repo.addAccountListener(accountListener)
+    }
+
+    private fun defaultTab() = if (signedIn) Tab.HOME else Tab.MUSIC
+
+    /** Signed in: Home, Subscriptions and History are shown (Home first). Signed out: topic feeds plus a probed Home. */
+    private fun buildTabs() {
+        homeProbe?.dispose()
+        tabBar.removeAllViews()
+        tabButtons.clear()
+        for (t in Tab.values()) {
+            if (!signedIn && (t == Tab.HOME || t == Tab.SUBS || t == Tab.HISTORY)) continue
+            addTabButton(t)
+        }
+        if (!signedIn) {
+            if (tab == Tab.SUBS || tab == Tab.HISTORY) tab = Tab.MUSIC
+            if (tab == Tab.HOME) addTabButton(Tab.HOME) else probeHome()
+        }
+        updateTabs()
+    }
+
+    private fun onAccountChanged() {
+        val now = Repo.isSignedIn()
+        if (now == signedIn) return
+        signedIn = now
+        val valid = if (now) true else tab != Tab.HOME && tab != Tab.SUBS && tab != Tab.HISTORY
+        // Signing in: land on Home. Signing out: only move if the current tab vanished.
+        if (now || !valid) tab = defaultTab()
+        buildTabs()
+        load()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (recreating) return
+        onAccountChanged()
     }
 
     private fun addTabButton(t: Tab) {
@@ -101,14 +140,22 @@ class MainActivity : Activity() {
     }
 
     private fun updateTabs() {
-        for ((t, b) in tabButtons) b.isEnabled = t != tab
+        val on = themeColor(R.attr.dalanAccent)
+        val off = themeColor(R.attr.dalanTextPrimary)
+        for ((t, b) in tabButtons) {
+            val sel = t == tab
+            b.setTextColor(if (sel) on else off)
+            b.setTypeface(null, if (sel) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+        }
     }
 
     private fun load() {
         loadAction?.dispose()
-        feed.showLoading()
+        feed.showLoading(sections = tab != Tab.SUBS && tab != Tab.HISTORY)
         val source = when (tab) {
             Tab.HOME -> Repo.home()
+            Tab.SUBS -> Repo.subscriptions()
+            Tab.HISTORY -> Repo.history()
             Tab.MUSIC -> Repo.music()
             Tab.GAMING -> Repo.gaming()
             Tab.NEWS -> Repo.news()
@@ -116,13 +163,16 @@ class MainActivity : Activity() {
             Tab.LIVE -> Repo.live()
         }
         loadAction = source.subscribe(
-            { groups -> feed.showGroups(groups, sections = true) },
+            { groups -> feed.showGroups(groups, sections = tab != Tab.SUBS && tab != Tab.HISTORY) },
             { e -> feed.showError(e.message) { load() } },
         )
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main, menu)
+        // The action bar draws its icons in the bar's own text colour (dark on the light theme).
+        val iconColor = (actionBar?.themedContext ?: this).themeColor(android.R.attr.textColorPrimary)
+        for (i in 0 until menu.size()) menu.getItem(i).icon = menu.getItem(i).icon?.mutate()?.also { it.setTint(iconColor) }
         val searchView = menu.findItem(R.id.action_search).actionView as SearchView
         searchView.queryHint = getString(R.string.search_hint)
         suggestAdapter = SimpleCursorAdapter(this, android.R.layout.simple_list_item_1, null, arrayOf("q"), intArrayOf(android.R.id.text1), 0)
@@ -173,7 +223,12 @@ class MainActivity : Activity() {
         else -> super.onOptionsItemSelected(item)
     }
 
+    override fun onStart() { super.onStart(); mini.onStart() }
+
+    override fun onStop() { mini.onStop(); super.onStop() }
+
     override fun onDestroy() {
+        Repo.removeAccountListener(accountListener)
         loadAction?.dispose(); homeProbe?.dispose(); suggestAction?.dispose(); feed.dispose()
         suggestRunnable?.let { handler.removeCallbacks(it) }
         super.onDestroy()

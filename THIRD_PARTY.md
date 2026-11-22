@@ -46,6 +46,7 @@ Each module got a new `build.gradle.kts` (see `settings.gradle.kts`).
 | 3 | every vendored module | `build.gradle` (Groovy) deleted, replaced by `build.gradle.kts`: `com.android.library`, compileSdk 37, minSdk 21, Java 17, `buildFeatures.buildConfig = true`, no flavors, lint non-fatal. `youtubeapi` depends directly on `:j2v8` (no flavors). `exoplayer/core` keeps the upstream `consumerProguardFiles`. |
 | 4 | `third_party/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeContentService.java` (`emitGroupsPartial(emitter, Pair)`) | `// DALAN:` The section-list paging loop now stops when the emitter is disposed (`!emitter.isDisposed()` in the loop condition plus a return right after each emission). Upstream keeps fetching the whole feed on a non-interruptible thread after the subscriber is gone. Paging could not be moved into `Repo` because `continueSectionList` is not exposed through `ContentService`. |
 | 5 | `third_party/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/app/playerdata/NSigExtractor.kt` | `// DALAN:` `mNFuncPattern` used `com.github.florianingerl.util:regex` only for the conditional `(?(2)...)`; that library is GPL-2.0, so it was dropped. The pattern now uses `java.util.regex`: an empty marker group `()` after the first two (non-`var=`) alternatives and a trailing `(?:\2\|...)` (a backreference to a group that did not participate fails, which emulates yt-dlp's `(?(var)...)`). Group numbers shifted (name = group 4, idx = group 5), and `extractNFunctionName1` now returns the name when there is no `[idx]` as yt-dlp does (upstream fell through to `extractNFunctionName2`, or crashed on `idx.toInt()` if a matching array assignment existed). |
+| 6 | `third_party/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/common/models/gen/CommonHelper.kt`, `CommonItems.kt` | `// DALAN:` `ItemWrapper.getType()` now handles `lockupViewModel` via its new `contentType` field (`LOCKUP_CONTENT_TYPE_CHANNEL/PLAYLIST/VIDEO/SHORT`; channel/playlist only when the lockup has a browse id, otherwise video if it has a videoId, e.g. mixes that open a watchEndpoint). The TV search endpoint returns every result as a lockup, so channel and playlist results were `TYPE_UNDEFINED` upstream. |
 
 All other vendored Java/Kotlin sources are byte-for-byte upstream.
 
@@ -100,3 +101,10 @@ From the POMs in the Gradle cache (versions in the table above and `gradle/libs.
 | dnsjava | BSD-2-Clause |
 | protobuf-javalite | BSD-3-Clause |
 | nanojson | no licence in the POM; the upstream repository (mmastrac/nanojson) is Apache-2.0 |
+
+## Icons
+The vector glyphs in `app/src/main/res/drawable/ic_*.xml` (search, refresh, settings, play, pause, close,
+fullscreen, fullscreen-exit, closed-caption on/off, open-in-new, HD, and the arrow of replay-10 / forward-10)
+follow the shapes of Google's Material Icons, which are licensed under the **Apache License 2.0**
+(https://github.com/google/material-design-icons). The "10" digits in replay-10 / forward-10 and the
+HD badge cut-out (a filled shape) are Dalan's own. The launcher icon is Dalan's own.

@@ -1,7 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Not themed: video overlays and thumbnail badges are the same in both modes. -->
     <color name="badge_bg">#CC000000</color>
-    <color name="card_thumb_bg">#FF222222</color>
-    <color name="text_secondary">#FFAAAAAA</color>
     <color name="controls_scrim">#99000000</color>
+
+    <!-- Dark palette (brand: near-black #141414, tan #D2A86E). -->
+    <color name="dark_bg">@color/launcher_black</color>
+    <color name="dark_surface">#FF1E1E1E</color>
+    <color name="dark_text_primary">#FFFFFFFF</color>
+    <color name="dark_text_secondary">#FFAAAAAA</color>
+    <color name="dark_accent">@color/launcher_tan</color>
+    <color name="dark_skeleton">#FF2A2A2A</color>
+    <color name="dark_thumb_bg">#FF222222</color>
+    <color name="dark_link">#FF90CAF9</color>
+    <color name="dark_status">#FF000000</color>
+
+    <!-- Light palette. Accent #8A6328 is a darker tan: about 5.5:1 on white. -->
+    <color name="light_bg">#FFFAFAFA</color>
+    <color name="light_surface">#FFEFEFEF</color>
+    <color name="light_text_primary">#FF141414</color>
+    <color name="light_text_secondary">#FF5F5F5F</color>
+    <color name="light_accent">#FF8A6328</color>
+    <color name="light_skeleton">#FFE3E3E3</color>
+    <color name="light_thumb_bg">#FFE0E0E0</color>
+    <color name="light_link">#FF1565C0</color>
+    <!-- Below Android 6 the status bar icons cannot be dark, so keep that bar dark there (values-v23 overrides). -->
+    <color name="light_status">#FF757575</color>
 </resources>

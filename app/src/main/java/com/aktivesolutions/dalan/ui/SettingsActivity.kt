@@ -2,7 +2,9 @@ package com.aktivesolutions.dalan.ui
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
+import android.preference.Preference
 import android.preference.PreferenceCategory
 import android.preference.PreferenceFragment
 import android.view.MenuItem
@@ -10,12 +12,12 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.aktivesolutions.dalan.R
+import com.aktivesolutions.dalan.data.Repo
 import com.aktivesolutions.dalan.player.Codecs
 
-class SettingsActivity : Activity() {
+class SettingsActivity : ThemedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setTheme(R.style.Theme_Dalan)
         title = getString(R.string.settings)
         actionBar?.setDisplayHomeAsUpEnabled(true)
         if (savedInstanceState == null) {
@@ -37,12 +39,58 @@ class SettingsActivity : Activity() {
                 val vp9 = findPreference("prefer_vp9")
                 (findPreference("cat_playback") as? PreferenceCategory)?.removePreference(vp9)
             }
+            findPreference("theme").setOnPreferenceChangeListener { _, _ ->
+                // The new value is saved after this returns; restyle this screen once it has been.
+                activity.window.decorView.post { (activity as? ThemedActivity)?.checkTheme() }
+                true
+            }
             findPreference("clear_cache").setOnPreferenceClickListener {
                 ImageLoader.clearCaches()
                 Toast.makeText(activity, R.string.pref_cache_cleared, Toast.LENGTH_SHORT).show()
                 true
             }
+            findPreference("account").setOnPreferenceClickListener {
+                if (Repo.isSignedIn()) confirmSignOut() else startActivity(Intent(activity, SignInActivity::class.java))
+                true
+            }
             findPreference("about").setOnPreferenceClickListener { showAbout(); true }
+        }
+
+        private var signOutAction: io.reactivex.disposables.Disposable? = null
+
+        override fun onDestroy() {
+            signOutAction?.dispose()
+            super.onDestroy()
+        }
+
+        override fun onResume() {
+            super.onResume()
+            refreshAccount()
+        }
+
+        private fun refreshAccount() {
+            val p: Preference = findPreference("account") ?: return
+            val acc = if (Repo.isSignedIn()) Repo.account() else null
+            if (acc != null || Repo.isSignedIn()) {
+                val name = acc?.name?.takeIf { it.isNotBlank() } ?: acc?.email?.takeIf { it.isNotBlank() } ?: ""
+                p.title = if (name.isNotEmpty()) getString(R.string.pref_signed_in_as, name) else getString(R.string.signin_done_generic)
+                p.summary = acc?.email?.takeIf { it.isNotBlank() && it != name } ?: getString(R.string.pref_sign_out)
+            } else {
+                p.setTitle(R.string.pref_sign_in)
+                p.setSummary(R.string.pref_sign_in_sum)
+            }
+        }
+
+        private fun confirmSignOut() {
+            AlertDialog.Builder(activity)
+                .setTitle(R.string.pref_sign_out_title)
+                .setMessage(R.string.pref_sign_out_msg)
+                .setPositiveButton(R.string.pref_sign_out) { _, _ ->
+                    signOutAction?.dispose()
+                    signOutAction = Repo.signOut().subscribe({ refreshAccount() }, { refreshAccount() })
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
         }
 
         private fun showAbout() {

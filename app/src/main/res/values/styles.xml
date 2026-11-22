@@ -1,7 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.Dalan" parent="android:Theme.Material" />
-    <style name="Theme.Dalan.Player" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@android:color/black</item>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Dark (the original look) -->
+    <style name="Theme.Dalan.Dark" parent="android:Theme.Material">
+        <item name="dalanBg">@color/dark_bg</item>
+        <item name="dalanSurface">@color/dark_surface</item>
+        <item name="dalanTextPrimary">@color/dark_text_primary</item>
+        <item name="dalanTextSecondary">@color/dark_text_secondary</item>
+        <item name="dalanAccent">@color/dark_accent</item>
+        <item name="dalanSkeleton">@color/dark_skeleton</item>
+        <item name="dalanThumbBg">@color/dark_thumb_bg</item>
+        <item name="dalanLink">@color/dark_link</item>
+        <item name="android:colorAccent">@color/dark_accent</item>
+        <item name="android:colorPrimary">@color/dark_surface</item>
+        <item name="android:colorPrimaryDark">@color/dark_status</item>
+        <item name="android:windowBackground">@color/dark_bg</item>
+        <item name="android:statusBarColor">@color/dark_status</item>
     </style>
+
+    <!-- Light -->
+    <style name="Theme.Dalan.Light" parent="android:Theme.Material.Light">
+        <item name="dalanBg">@color/light_bg</item>
+        <item name="dalanSurface">@color/light_surface</item>
+        <item name="dalanTextPrimary">@color/light_text_primary</item>
+        <item name="dalanTextSecondary">@color/light_text_secondary</item>
+        <item name="dalanAccent">@color/light_accent</item>
+        <item name="dalanSkeleton">@color/light_skeleton</item>
+        <item name="dalanThumbBg">@color/light_thumb_bg</item>
+        <item name="dalanLink">@color/light_link</item>
+        <item name="android:colorAccent">@color/light_accent</item>
+        <item name="android:colorPrimary">@color/light_surface</item>
+        <item name="android:colorPrimaryDark">@color/light_status</item>
+        <item name="android:windowBackground">@color/light_bg</item>
+        <item name="android:statusBarColor">@color/light_status</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">true</item>
+    </style>
+
+    <!-- Player: the window (video letterbox) stays black; only the info panel and dialogs follow the theme. -->
+    <style name="Theme.Dalan.Player.Dark" parent="android:Theme.Material.NoActionBar">
+        <item name="dalanBg">@color/dark_bg</item>
+        <item name="dalanSurface">@color/dark_surface</item>
+        <item name="dalanTextPrimary">@color/dark_text_primary</item>
+        <item name="dalanTextSecondary">@color/dark_text_secondary</item>
+        <item name="dalanAccent">@color/dark_accent</item>
+        <item name="dalanSkeleton">@color/dark_skeleton</item>
+        <item name="dalanThumbBg">@color/dark_thumb_bg</item>
+        <item name="dalanLink">@color/dark_link</item>
+        <item name="android:colorAccent">@color/dark_accent</item>
+        <item name="android:colorPrimary">@color/dark_surface</item>
+        <item name="android:colorPrimaryDark">@android:color/black</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+    </style>
+
+    <style name="Theme.Dalan.Player.Light" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="dalanBg">@color/light_bg</item>
+        <item name="dalanSurface">@color/light_surface</item>
+        <item name="dalanTextPrimary">@color/light_text_primary</item>
+        <item name="dalanTextSecondary">@color/light_text_secondary</item>
+        <item name="dalanAccent">@color/light_accent</item>
+        <item name="dalanSkeleton">@color/light_skeleton</item>
+        <item name="dalanThumbBg">@color/light_thumb_bg</item>
+        <item name="dalanLink">@color/light_link</item>
+        <item name="android:colorAccent">@color/light_accent</item>
+        <item name="android:colorPrimary">@color/light_surface</item>
+        <item name="android:colorPrimaryDark">@android:color/black</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+    </style>
+
+    <!-- Manifest (launch window) themes: follow the system night mode on Android 10+, dark below. -->
+    <style name="Theme.Dalan" parent="Theme.Dalan.Dark" />
+    <style name="Theme.Dalan.Player" parent="Theme.Dalan.Player.Dark" />
 </resources>

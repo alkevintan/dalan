@@ -15,6 +15,9 @@ class Settings(context: Context) {
     val backgroundPlay: Boolean get() = prefs.getBoolean("background_play", true)
     val autoplayNext: Boolean get() = prefs.getBoolean("autoplay_next", true)
 
+    /** "system" (default), "light" or "dark". */
+    val themeMode: String get() = prefs.getString("theme", "system") ?: "system"
+
     /** "off", "system" or a BCP-47 language code. */
     var captionLang: String
         get() = prefs.getString("caption_lang", "off") ?: "off"

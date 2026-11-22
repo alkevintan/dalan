@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="dalanBg" format="color" />
+    <attr name="dalanSurface" format="color" />
+    <attr name="dalanTextPrimary" format="color" />
+    <attr name="dalanTextSecondary" format="color" />
+    <attr name="dalanAccent" format="color" />
+    <attr name="dalanSkeleton" format="color" />
+    <attr name="dalanThumbBg" format="color" />
+    <attr name="dalanLink" format="color" />
+</resources>

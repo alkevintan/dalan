@@ -475,7 +475,8 @@ internal data class LockupItem(
     val contentImage: ContentImage?, // thumbnail
     val metadata: MetadataItem?, // title, subtitle, channelId
     val rendererContext: RendererContext?, // videoId
-    val contentId: String?
+    val contentId: String?,
+    val contentType: String? // DALAN: LOCKUP_CONTENT_TYPE_VIDEO/SHORT/CHANNEL/PLAYLIST
 ) {
     data class ContentImage(
         val thumbnailViewModel: ThumbnailViewModel?,

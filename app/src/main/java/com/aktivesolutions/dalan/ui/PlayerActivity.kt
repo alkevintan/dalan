@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.ActivityInfo
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
@@ -46,7 +47,9 @@ import java.util.Locale
  * attaches its PlayerView and draws the controls plus the info / related list.
  * Handles rotation itself (configChanges) so the player is never recreated.
  */
-class PlayerActivity : Activity(), PlaybackController.Listener {
+class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
+
+    override val playerTheme: Boolean get() = true
 
     private var service: PlaybackService? = null
     private var controller: PlaybackController? = null
@@ -64,9 +67,9 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
     private lateinit var timeText: TextView
     private lateinit var playPause: ImageButton
     private lateinit var qualityBtn: Button
-    private lateinit var ccBtn: Button
+    private lateinit var ccBtn: ImageButton
     private lateinit var speedBtn: Button
-    private lateinit var fullscreenBtn: Button
+    private lateinit var fullscreenBtn: ImageButton
     private lateinit var infoList: RecyclerView
     private val infoAdapter = InfoAdapter()
 
@@ -75,11 +78,13 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
     private var dragging = false
     private var pendingIntent: Intent? = null
     private var started = false
+    private var restored = false
 
     private val hideControls = Runnable { setControlsVisible(false) }
     private val ticker = object : Runnable {
         override fun run() {
             updateProgress()
+            updateKeepScreenOn()
             handler.postDelayed(this, 500)
         }
     }
@@ -96,13 +101,13 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
             controller = c
             attach(s)
             // Only show video while visible: a connect that completes after onStop must not re-enable it.
-            if (started) c.setVideoEnabled(true)
-            else if (!c.settings.backgroundPlay) s.player.playWhenReady = false
-            else c.setVideoEnabled(false)
+            c.setVideoEnabled(started)
             updatePlayState()
-            pendingIntent?.let { handleIntent(it) }
+            // After a recreation (process restore) the service already plays something: don't replay the launch intent.
+            pendingIntent?.let { if (!(restored && c.videoId != null)) handleIntent(it) }
             pendingIntent = null
             c.metadata?.let { showMetadata(it) }
+            if (c.metadata == null && (c.metadataFailed || c.formatInfo != null)) infoAdapter.failed()
             c.lastError?.let { onError(it, true) }
         }
 
@@ -125,13 +130,19 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setTheme(R.style.Theme_Dalan_Player)
+        restored = savedInstanceState != null
+        fullscreen = savedInstanceState?.getBoolean("fullscreen", true) ?: true
         buildUi()
         applyLayout()
         pendingIntent = intent
         val i = Intent(this, PlaybackService::class.java)
         startService(i)
         bound = bindService(i, connection, Context.BIND_AUTO_CREATE)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("fullscreen", fullscreen)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -150,11 +161,15 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
             else -> null
         }
         if (parsed != null) {
-            infoAdapter.reset()
+            // Re-start the service: onNewIntent reuses this activity without onCreate, and the session may have
+            // been closed meanwhile (mini player / notification), which leaves it only bound (and marked closed).
+            startService(Intent(this, PlaybackService::class.java))
+            if (parsed.videoId != c.videoId) infoAdapter.reset()
             c.open(parsed.videoId, parsed.startSeconds)
         } else if (c.videoId == null) {
             // Nothing to show (e.g. notification tapped after the service died, or a bad link).
             Toast.makeText(this, R.string.empty, Toast.LENGTH_SHORT).show()
+            service?.close() // don't leave an empty started service behind
             finish()
         }
     }
@@ -172,25 +187,16 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
         started = false
         visibleCount--
         handler.removeCallbacks(ticker)
+        setKeepScreenOn(false)
         val c = controller
-        // With a second PlayerActivity already visible (Player -> Channel -> video) leave the player alone.
-        if (c != null && visibleCount <= 0) {
-            if (!c.settings.backgroundPlay) service?.player?.playWhenReady = false
-            else c.setVideoEnabled(false) // audio only while hidden: saves CPU on weak devices
-        }
+        // Audio only while no PlayerActivity is visible: saves CPU on weak devices. Pausing when the whole
+        // app leaves the foreground (background play off) is handled app-wide by AppVisibility.
+        if (c != null && visibleCount <= 0 && !isChangingConfigurations) c.setVideoEnabled(false)
         c?.savePosition()
         super.onStop()
     }
 
     override fun onDestroy() {
-        if (isFinishing && visibleCount <= 0) {
-            val p = service?.player
-            val playing = p != null && p.playWhenReady &&
-                (p.playbackState == Player.STATE_READY || p.playbackState == Player.STATE_BUFFERING)
-            val bg = controller?.settings?.backgroundPlay ?: false
-            // Leaving the player while paused / ended / with background play off: release service, player and session.
-            if (!playing || !bg) startService(Intent(this, PlaybackService::class.java).setAction(PlaybackService.ACTION_CLOSE))
-        }
         handler.removeCallbacksAndMessages(null)
         controller?.let { if (it.listener === this) it.listener = null }
         service?.player?.removeListener(playerListener)
@@ -207,6 +213,15 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
         applyLayout()
+        checkTheme() // uiMode is handled here (no recreation): only the info panel is re-themed
+    }
+
+    /** Theme setting / night mode changed: the video area stays black, so only the info panel and dialogs restyle. */
+    override fun restyle(): Boolean {
+        setTheme(Themes.themeRes(Themes.isDark(this), true))
+        infoList.setBackgroundColor(themeColor(R.attr.dalanBg))
+        infoList.adapter = infoAdapter // new adapter attach recycles the holders, so they are rebuilt with the new colours
+        return true
     }
 
     // ------------------------------------------------------------------ UI construction
@@ -221,45 +236,54 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
         playerView.useController = false
         playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
         playerFrame.addView(playerView, FrameLayout.LayoutParams(-1, -1))
-        playerView.setOnClickListener { toggleControls() }
+        // PlayerView ignores touches when useController=false, so the frame (its parent) handles taps.
+        playerFrame.setOnClickListener { toggleControls() }
 
         spinner = ProgressBar(this)
+        spinner.indeterminateTintList = ColorStateList.valueOf(resources.getColor(R.color.launcher_tan))
         playerFrame.addView(spinner, FrameLayout.LayoutParams(dp(this, 48), dp(this, 48), Gravity.CENTER))
         statusText = TextView(this).apply {
             setTextColor(Color.WHITE); gravity = Gravity.CENTER; setPadding(dp(context, 24), 0, dp(context, 24), 0); visibility = View.GONE
         }
-        retryButton = Button(this).apply { setText(R.string.retry); visibility = View.GONE; setOnClickListener { controller?.retry() } }
+        retryButton = Button(this).apply { setText(R.string.retry); setStartGlyph(R.drawable.ic_refresh); visibility = View.GONE; setOnClickListener { controller?.retry() } }
         val statusBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
         statusBox.addView(statusText); statusBox.addView(retryButton)
         playerFrame.addView(statusBox, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
 
         controls = LinearLayout(this)
+        controls.isClickable = true // swallow taps on the bar so they don't toggle (hide) it
         controls.orientation = LinearLayout.VERTICAL
         controls.setBackgroundColor(resources.getColor(R.color.controls_scrim))
         controls.setPadding(dp(this, 8), dp(this, 4), dp(this, 8), dp(this, 4))
         val seekRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         seek = SeekBar(this)
+        // Controls always sit on a dark scrim over the video, so they use fixed brand / white colours in both themes.
+        seek.progressTintList = ColorStateList.valueOf(resources.getColor(R.color.launcher_tan))
+        seek.thumbTintList = ColorStateList.valueOf(resources.getColor(R.color.launcher_tan))
+        seek.secondaryProgressTintList = ColorStateList.valueOf(0x99FFFFFF.toInt())
+        seek.progressBackgroundTintList = ColorStateList.valueOf(0x55FFFFFF)
         timeText = TextView(this).apply { setTextColor(Color.WHITE); textSize = 12f; setPadding(dp(context, 8), 0, 0, 0) }
         seekRow.addView(seek, LinearLayout.LayoutParams(0, -2, 1f))
         seekRow.addView(timeText)
         val buttons = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        val back10 = textButton("-10") { seekBy(-10_000) }
-        playPause = ImageButton(this).apply {
-            setBackgroundColor(Color.TRANSPARENT)
-            setImageResource(android.R.drawable.ic_media_pause)
-            setOnClickListener { togglePlay() }
-            contentDescription = getString(R.string.play_pause)
-        }
-        val fwd10 = textButton("+10") { seekBy(10_000) }
-        qualityBtn = textButton(getString(R.string.quality)) { showQualityDialog() }
-        ccBtn = textButton("CC") { showCaptionDialog() }
-        speedBtn = textButton("1x") { showSpeedDialog() }
-        fullscreenBtn = textButton("[ ]") { toggleFullscreen() }
-        buttons.addView(back10)
-        buttons.addView(playPause, LinearLayout.LayoutParams(dp(this, 56), dp(this, 44)))
-        buttons.addView(fwd10)
+        val back10 = iconButton(R.drawable.ic_replay_10, R.string.cd_replay_10) { seekBy(-10_000) }
+        playPause = iconButton(R.drawable.ic_pause, R.string.play_pause) { togglePlay() }
+        val fwd10 = iconButton(R.drawable.ic_forward_10, R.string.cd_forward_10) { seekBy(10_000) }
+        qualityBtn = textButton("") { showQualityDialog() }
+        qualityBtn.setStartGlyph(R.drawable.ic_hd, Color.WHITE)
+        qualityBtn.contentDescription = getString(R.string.cd_quality)
+        ccBtn = iconButton(R.drawable.ic_cc_off, R.string.cd_captions) { showCaptionDialog() }
+        speedBtn = textButton("1×") { showSpeedDialog() }
+        speedBtn.contentDescription = getString(R.string.cd_speed)
+        fullscreenBtn = iconButton(R.drawable.ic_fullscreen, R.string.cd_fullscreen) { toggleFullscreen() }
+        val box = LinearLayout.LayoutParams(dp(this, 48), dp(this, 48))
+        buttons.addView(back10, box)
+        buttons.addView(playPause, LinearLayout.LayoutParams(dp(this, 56), dp(this, 48)))
+        buttons.addView(fwd10, LinearLayout.LayoutParams(box))
         buttons.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
-        buttons.addView(qualityBtn); buttons.addView(ccBtn); buttons.addView(speedBtn); buttons.addView(fullscreenBtn)
+        buttons.addView(qualityBtn, LinearLayout.LayoutParams(-2, dp(this, 48))); buttons.addView(ccBtn, LinearLayout.LayoutParams(box))
+        buttons.addView(speedBtn, LinearLayout.LayoutParams(-2, dp(this, 48)))
+        buttons.addView(fullscreenBtn, LinearLayout.LayoutParams(box))
         controls.addView(seekRow); controls.addView(buttons)
         playerFrame.addView(controls, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
 
@@ -276,6 +300,7 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
         })
 
         infoList = RecyclerView(this)
+        infoList.setBackgroundColor(themeColor(R.attr.dalanBg))
         infoList.layoutManager = LinearLayoutManager(this)
         infoList.adapter = infoAdapter
         infoList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -290,8 +315,17 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
     }
 
     private fun textButton(label: String, onClick: () -> Unit) = Button(this, null, android.R.attr.borderlessButtonStyle).apply {
-        text = label; setTextColor(Color.WHITE); textSize = 13f; minWidth = 0; minimumWidth = 0
+        text = label; setTextColor(Color.WHITE); textSize = 14f; minWidth = 0; minimumWidth = 0
+        setBackgroundResource(R.drawable.ripple_white)
         setPadding(dp(context, 10), 0, dp(context, 10), 0)
+        setOnClickListener { onClick(); scheduleHide() }
+    }
+
+    /** 48dp borderless glyph button for the player controls (glyphs are white vectors). */
+    private fun iconButton(icon: Int, desc: Int, onClick: () -> Unit) = ImageButton(this).apply {
+        setImageResource(icon)
+        setBackgroundResource(R.drawable.ripple_white)
+        contentDescription = getString(desc)
         setOnClickListener { onClick(); scheduleHide() }
     }
 
@@ -317,7 +351,9 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
             infoList.visibility = View.VISIBLE
             applyImmersive(false)
         }
-        fullscreenBtn.text = if (landscape && fullscreen) "[x]" else "[ ]"
+        val exit = landscape && fullscreen
+        fullscreenBtn.setImageResource(if (exit) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen)
+        fullscreenBtn.contentDescription = getString(if (exit) R.string.cd_exit_fullscreen else R.string.cd_fullscreen)
         root.requestLayout()
     }
 
@@ -370,23 +406,47 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
         p.seekTo(t.coerceAtLeast(0))
     }
 
+    private var keepOnApplied = false
+
+    private fun setKeepScreenOn(on: Boolean) {
+        if (on == keepOnApplied) return
+        keepOnApplied = on
+        if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    /** Window-level keep-awake: stays on through IDLE/loading gaps while playWhenReady; off when paused, ended or errored. */
+    private fun updateKeepScreenOn() {
+        val p = service?.player
+        setKeepScreenOn(p != null && p.playWhenReady && controller?.lastError == null &&
+            p.playbackState != Player.STATE_ENDED)
+    }
+
     private fun updatePlayState() {
+        updateKeepScreenOn()
         val p = service?.player ?: return
         val playing = p.playWhenReady && p.playbackState != Player.STATE_ENDED && p.playbackState != Player.STATE_IDLE
-        playPause.setImageResource(if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
+        playPause.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
         spinner.visibility = if (p.playbackState == Player.STATE_BUFFERING ||
             (p.playbackState == Player.STATE_IDLE && controller?.lastError == null && controller?.videoId != null)) View.VISIBLE else View.GONE
-        playerFrame.keepScreenOn = playing // keep the screen on while playing
         if (playing) scheduleHide() else { handler.removeCallbacks(hideControls); if (!controlsVisible) setControlsVisible(true) }
-        speedBtn.text = String.format(Locale.US, "%sx", trimSpeed(controller?.speed ?: 1f))
+        speedBtn.text = String.format(Locale.US, "%s×", trimSpeed(controller?.speed ?: 1f))
         updateQualityLabel()
     }
 
     private fun updateQualityLabel() {
         val c = controller ?: return
         val h = c.chosenHeight()
-        qualityBtn.text = if (h != null) "${h}p" else if (c.currentHeight() > 0) "${getString(R.string.auto)} ${c.currentHeight()}p" else getString(R.string.quality)
-        ccBtn.alpha = if (c.chosenCaption != null) 1f else 0.5f
+        val label = if (h != null) "${h}p" else if (c.currentHeight() > 0) "${getString(R.string.auto)}·${c.currentHeight()}p" else null
+        qualityBtn.contentDescription = if (label != null) "${getString(R.string.cd_quality)}, $label" else getString(R.string.cd_quality)
+        if (label != null) {
+            qualityBtn.text = label
+            qualityBtn.setCompoundDrawablesRelative(null, null, null, null)
+        } else {
+            qualityBtn.text = ""
+            qualityBtn.setStartGlyph(R.drawable.ic_hd, Color.WHITE)
+        }
+        ccBtn.setImageResource(if (c.chosenCaption != null) R.drawable.ic_cc_on else R.drawable.ic_cc_off)
     }
 
     private fun updateProgress() {
@@ -414,7 +474,7 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
     private fun showQualityDialog() {
         val c = controller ?: return
         val heights = c.availableHeights()
-        val labels = ArrayList<String>().apply { add(getString(R.string.auto)); heights.forEach { add("${it}p") } }
+        val labels = ArrayList<String>().apply { add(if (c.currentHeight() > 0) "${getString(R.string.auto)} (${c.currentHeight()}p)" else getString(R.string.auto)); heights.forEach { add("${it}p") } }
         val chosen = c.chosenHeight()
         val checked = if (chosen == null) 0 else (heights.indexOf(chosen) + 1).coerceAtLeast(0)
         AlertDialog.Builder(this).setTitle(R.string.quality)
@@ -426,7 +486,7 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
     private fun showSpeedDialog() {
         val c = controller ?: return
         val speeds = floatArrayOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
-        val labels = speeds.map { "${trimSpeed(it)}x" }.toTypedArray()
+        val labels = speeds.map { "${trimSpeed(it)}×" }.toTypedArray()
         AlertDialog.Builder(this).setTitle(R.string.speed)
             .setSingleChoiceItems(labels, speeds.toList().indexOf(c.speed).coerceAtLeast(0)) { d, which ->
                 c.setSpeed(speeds[which]); d.dismiss(); updatePlayState()
@@ -451,6 +511,8 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
     // ------------------------------------------------------------------ PlaybackController.Listener
 
     override fun onVideoOpened(videoId: String) {
+        // Keep the activity's intent in step with what is playing (autoplay-next, related taps), so re-handling it is harmless.
+        setIntent(Intent(this, PlayerActivity::class.java).putExtra(EXTRA_VIDEO_ID, videoId))
         infoAdapter.reset()
         statusText.visibility = View.GONE; retryButton.visibility = View.GONE
         updatePlayState()
@@ -467,14 +529,19 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
         statusText.visibility = View.VISIBLE
         retryButton.visibility = if (retryable) View.VISIBLE else View.GONE
         spinner.visibility = View.GONE
+        infoAdapter.failed()
         setControlsVisible(true)
+        updateKeepScreenOn()
     }
 
     override fun onErrorCleared() {
         statusText.visibility = View.GONE; retryButton.visibility = View.GONE
+        updateKeepScreenOn()
     }
 
     override fun onTracksChanged() = updateQualityLabel()
+
+    override fun onMetadataFailed() = infoAdapter.failed()
 
     // ------------------------------------------------------------------ info + related list
 
@@ -483,19 +550,29 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
         private var related: List<MediaItem> = emptyList()
         private var descExpanded = false
 
-        fun reset() { meta = null; related = emptyList(); descExpanded = false; notifyDataSetChanged() }
+        /** True from opening a video until its metadata (or an error) arrives: the panel shows a skeleton. */
+        private var loading = true
+
+        fun reset() { meta = null; related = emptyList(); descExpanded = false; loading = true; notifyDataSetChanged() }
+
+        /** The video failed to load: stop pretending metadata is coming and show what is known. */
+        fun failed() { if (loading) { loading = false; notifyDataSetChanged() } }
 
         fun setMetadata(m: MediaItemMetadata) {
             meta = m
+            loading = false
             related = m.suggestions.orEmpty().flatMap { it.mediaItems.orEmpty() }.filter { !it.videoId.isNullOrEmpty() }
             notifyDataSetChanged()
         }
 
-        override fun getItemCount() = 1 + related.size
-        override fun getItemViewType(position: Int) = if (position == 0) 0 else 1
+        override fun getItemCount() = if (loading) 1 else 1 + related.size
+        override fun getItemViewType(position: Int) = if (loading) 2 else if (position == 0) 0 else 1
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
-            if (viewType == 0) HeaderHolder(buildHeader(parent.context))
+            if (viewType == 2) SkeletonHolder(Skeleton.pulse(parent.context, Skeleton.playerInfo(parent.context)).also {
+                it.layoutParams = RecyclerView.LayoutParams(-1, -2)
+            })
+            else if (viewType == 0) HeaderHolder(buildHeader(parent.context))
             else RelatedHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_related, parent, false).also {
                 it.layoutParams = RecyclerView.LayoutParams(-1, -2)
             })
@@ -547,18 +624,21 @@ class PlayerActivity : Activity(), PlaybackController.Listener {
                 setPadding(dp(ctx, 12), dp(ctx, 8), dp(ctx, 12), dp(ctx, 4))
                 layoutParams = RecyclerView.LayoutParams(-1, -2)
             }
-            val title = TextView(ctx).apply { setTextColor(Color.WHITE); textSize = 18f }
+            val textPrimary = ctx.themeColor(R.attr.dalanTextPrimary)
+            val title = TextView(ctx).apply { setTextColor(textPrimary); textSize = 18f }
             val channel = Button(ctx, null, android.R.attr.borderlessButtonStyle).apply {
-                setTextColor(0xFF90CAF9.toInt()); gravity = Gravity.START or Gravity.CENTER_VERTICAL; isAllCaps = false; setPadding(0, 0, 0, 0)
+                setTextColor(ctx.themeColor(R.attr.dalanLink)); gravity = Gravity.START or Gravity.CENTER_VERTICAL; isAllCaps = false; setPadding(0, 0, 0, 0)
             }
-            val stats = TextView(ctx).apply { setTextColor(resources.getColor(R.color.text_secondary)); textSize = 12f }
-            val desc = TextView(ctx).apply { setTextColor(Color.LTGRAY); textSize = 13f; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, dp(ctx, 8), 0, 0) }
-            val more = Button(ctx, null, android.R.attr.borderlessButtonStyle).apply { isAllCaps = false; gravity = Gravity.START or Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0) }
-            val label = TextView(ctx).apply { setText(R.string.related); setTextColor(Color.WHITE); textSize = 15f; setPadding(0, dp(ctx, 8), 0, dp(ctx, 4)) }
+            val stats = TextView(ctx).apply { setTextColor(ctx.themeColor(R.attr.dalanTextSecondary)); textSize = 12f }
+            val desc = TextView(ctx).apply { setTextColor((textPrimary and 0x00FFFFFF) or 0xDD000000.toInt()); textSize = 13f; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, dp(ctx, 8), 0, 0) }
+            val more = Button(ctx, null, android.R.attr.borderlessButtonStyle).apply { setTextColor(ctx.themeColor(R.attr.dalanAccent)); isAllCaps = false; gravity = Gravity.START or Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0) }
+            val label = TextView(ctx).apply { setText(R.string.related); setTextColor(textPrimary); textSize = 15f; setPadding(0, dp(ctx, 8), 0, dp(ctx, 4)) }
             box.addView(title); box.addView(channel, LinearLayout.LayoutParams(-2, dp(ctx, 36))); box.addView(stats); box.addView(desc); box.addView(more, LinearLayout.LayoutParams(-2, dp(ctx, 36))); box.addView(label)
             return HeaderViews(box, title, channel, stats, desc, more, label)
         }
     }
+
+    private class SkeletonHolder(v: View) : RecyclerView.ViewHolder(v)
 
     private class HeaderViews(val root: LinearLayout, val title: TextView, val channel: Button, val stats: TextView, val desc: TextView, val more: Button, val relatedLabel: TextView)
 
