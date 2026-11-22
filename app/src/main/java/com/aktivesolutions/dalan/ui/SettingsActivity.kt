@@ -2,6 +2,14 @@ package com.aktivesolutions.dalan.ui
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.ProgressDialog
+import android.preference.ListPreference
+import java.text.Collator
+import java.util.Locale
+import com.aktivesolutions.dalan.BuildConfig
+import com.aktivesolutions.dalan.data.Region
+import com.aktivesolutions.dalan.data.Settings
+import com.aktivesolutions.dalan.data.Updater
 import android.content.Intent
 import android.os.Bundle
 import android.preference.Preference
@@ -40,6 +48,8 @@ class SettingsActivity : ThemedActivity() {
                 val vp9 = findPreference("prefer_vp9")
                 (findPreference("cat_playback") as? PreferenceCategory)?.removePreference(vp9)
             }
+            setupRegion()
+            setupUpdates()
             findPreference("theme").setOnPreferenceChangeListener { _, _ ->
                 // The new value is saved after this returns; restyle this screen once it has been.
                 activity.window.decorView.post { (activity as? ThemedActivity)?.checkTheme() }
@@ -58,10 +68,47 @@ class SettingsActivity : ThemedActivity() {
             findPreference("about").setOnPreferenceClickListener { showAbout(); true }
         }
 
+        private fun setupRegion() {
+            val lp = findPreference("region") as ListPreference
+            val collator = Collator.getInstance()
+            val countries = Locale.getISOCountries()
+                .map { it to Locale("", it).displayCountry.ifBlank { it } }
+                .sortedWith { a, b -> collator.compare(a.second, b.second) }
+            lp.entries = (listOf(getString(R.string.region_auto)) + countries.map { it.second }).toTypedArray()
+            lp.entryValues = (listOf("") + countries.map { it.first }).toTypedArray()
+            lp.value = Settings.get(activity).region // re-sync the selection now that the real list is set
+            lp.setOnPreferenceChangeListener { _, v -> Region.apply(v as String); true }
+        }
+
+        private var updateAction: io.reactivex.disposables.Disposable? = null
+        private var checking: ProgressDialog? = null
+
+        private fun setupUpdates() {
+            findPreference("check_update").summary = getString(R.string.pref_current_version, BuildConfig.VERSION_NAME)
+            findPreference("check_update").setOnPreferenceClickListener {
+                checking?.dismiss()
+                val d = ProgressDialog(activity).apply { setMessage(getString(R.string.update_checking)); setCancelable(true) }
+                checking = d
+                d.show()
+                updateAction?.dispose()
+                updateAction = Updater.check().subscribe({ r ->
+                    d.dismiss()
+                    if (r == null) Toast.makeText(activity, R.string.update_latest, Toast.LENGTH_SHORT).show() else UpdateUi.showAvailable(activity, r, manual = true)
+                }, {
+                    d.dismiss()
+                    Toast.makeText(activity, R.string.update_check_failed, Toast.LENGTH_LONG).show()
+                })
+                d.setOnCancelListener { updateAction?.dispose() }
+                true
+            }
+        }
+
         private var signOutAction: io.reactivex.disposables.Disposable? = null
 
         override fun onDestroy() {
             signOutAction?.dispose()
+            updateAction?.dispose()
+            checking?.dismiss()
             super.onDestroy()
         }
 

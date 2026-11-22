@@ -3,6 +3,8 @@ package com.aktivesolutions.dalan
 import android.app.Application
 import android.util.Log
 import com.aktivesolutions.dalan.data.Filters
+import com.aktivesolutions.dalan.data.Region
+import com.aktivesolutions.dalan.data.Settings
 import com.aktivesolutions.dalan.player.Codecs
 import io.reactivex.exceptions.UndeliverableException
 import io.reactivex.plugins.RxJavaPlugins
@@ -28,6 +30,7 @@ class DalanApp : Application() {
         // unhold() just makes sure a stale instance is rebuilt after the context exists.
         GlobalPreferences.instance(this)
         LocaleManager.unhold()
+        Region.apply(Settings.get(this).region)
         // The sign-in service restores accounts on a background thread; do it synchronously (idempotent)
         // so Repo.isSignedIn() is right as soon as MainActivity starts.
         try { YouTubeAccountManager.instance(YouTubeSignInService.instance()).init() } catch (e: Throwable) { Log.w("DalanApp", "account restore failed", e) }

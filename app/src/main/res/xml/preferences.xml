@@ -12,6 +12,16 @@
             android:defaultValue="system"
             android:summary="%s" />
     </PreferenceCategory>
+    <PreferenceCategory android:key="cat_content" android:title="@string/pref_content">
+        <ListPreference
+            android:key="region"
+            android:title="@string/pref_region"
+            android:dialogTitle="@string/pref_region_dialog"
+            android:entries="@array/region_placeholder"
+            android:entryValues="@array/region_placeholder_values"
+            android:defaultValue=""
+            android:summary="%s" />
+    </PreferenceCategory>
     <PreferenceCategory android:key="cat_playback" android:title="@string/pref_playback">
         <ListPreference
             android:key="max_quality"
@@ -54,6 +64,13 @@
             android:summary="@string/pref_filters_enabled_sum"
             android:defaultValue="true" />
         <Preference android:key="filters" android:title="@string/pref_filters_manage" />
+    </PreferenceCategory>
+    <PreferenceCategory android:key="cat_updates" android:title="@string/pref_updates_cat">
+        <Preference android:key="check_update" android:title="@string/pref_check_update" />
+        <CheckBoxPreference
+            android:key="auto_update_check"
+            android:title="@string/pref_auto_update"
+            android:defaultValue="true" />
     </PreferenceCategory>
     <Preference android:key="clear_cache" android:title="@string/pref_clear_cache" />
     <Preference android:key="about" android:title="@string/about" />

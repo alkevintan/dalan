@@ -14,8 +14,10 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.provider.Settings
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.OrientationEventListener
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -75,6 +77,20 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
     private val infoAdapter = InfoAdapter()
 
     private var fullscreen = true
+    /** Landscape was forced by the fullscreen button from portrait (lock kept until the device is physically landscape). */
+    private var forcedLandscape = false
+    private var resumed = false
+    private val orientationListener by lazy {
+        object : OrientationEventListener(this) {
+            override fun onOrientationChanged(orientation: Int) {
+                if (!forcedLandscape || orientation == ORIENTATION_UNKNOWN) return
+                // Degrees from the natural orientation: landscape is 90/270 on portrait-natural devices (this tablet), 0/180 otherwise.
+                val d = (orientation + (if (naturalLandscape()) 90 else 0)) % 180
+                val nearLandscape = Math.abs(d - 90) <= 20
+                if (nearLandscape && autoRotateOn()) releaseForcedLandscape()
+            }
+        }
+    }
     private var controlsVisible = true
     private var dragging = false
     private var pendingIntent: Intent? = null
@@ -135,6 +151,8 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
         super.onCreate(savedInstanceState)
         restored = savedInstanceState != null
         fullscreen = savedInstanceState?.getBoolean("fullscreen", true) ?: true
+        forcedLandscape = savedInstanceState?.getBoolean("forcedLandscape", false) ?: false
+        if (forcedLandscape) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         buildUi()
         applyLayout()
         pendingIntent = intent
@@ -146,6 +164,7 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean("fullscreen", fullscreen)
+        outState.putBoolean("forcedLandscape", forcedLandscape)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -179,7 +198,15 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
 
     override fun onResume() {
         super.onResume()
+        resumed = true
+        updateOrientationListener()
         if (filtersSeen != Filters.version) { filtersSeen = Filters.version; infoAdapter.refilter() }
+    }
+
+    override fun onPause() {
+        resumed = false
+        updateOrientationListener()
+        super.onPause()
     }
 
     override fun onStart() {
@@ -205,6 +232,7 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
     }
 
     override fun onDestroy() {
+        orientationListener.disable()
         handler.removeCallbacksAndMessages(null)
         controller?.let { if (it.listener === this) it.listener = null }
         service?.player?.removeListener(playerListener)
@@ -215,11 +243,6 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE &&
-            requestedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-            // The user used the fullscreen button in portrait; let rotation work normally again.
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
         applyLayout()
         checkTheme() // uiMode is handled here (no recreation): only the info panel is re-themed
     }
@@ -373,11 +396,40 @@ class PlayerActivity : ThemedActivity(), PlaybackController.Listener {
         } else View.SYSTEM_UI_FLAG_VISIBLE
     }
 
+    private fun autoRotateOn(): Boolean = try {
+        Settings.System.getInt(contentResolver, Settings.System.ACCELEROMETER_ROTATION, 0) == 1
+    } catch (e: Exception) { false }
+
+    @Suppress("DEPRECATION")
+    private fun naturalLandscape(): Boolean {
+        val rot = windowManager.defaultDisplay.rotation
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        return landscape == (rot == android.view.Surface.ROTATION_0 || rot == android.view.Surface.ROTATION_180)
+    }
+
+    private fun releaseForcedLandscape() {
+        forcedLandscape = false
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        updateOrientationListener()
+    }
+
+    private fun updateOrientationListener() {
+        if (forcedLandscape && resumed && orientationListener.canDetectOrientation()) orientationListener.enable()
+        else orientationListener.disable()
+    }
+
     private fun toggleFullscreen() {
         val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         if (!landscape) {
             fullscreen = true
+            forcedLandscape = true
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            updateOrientationListener()
+        } else if (forcedLandscape) {
+            // Exit: hand orientation back to the system (portrait under rotation lock); keep fullscreen as the landscape default.
+            forcedLandscape = false
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            updateOrientationListener()
         } else {
             fullscreen = !fullscreen
             applyLayout()

@@ -12,10 +12,26 @@ android {
         applicationId = "com.aktivesolutions.dalan"
         minSdk = 21
         targetSdk = 25
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.1.3"
+        buildConfigField("String", "UPDATE_REPO", "\"alkevintan/dalan\"")
         ndk { abiFilters += "armeabi-v7a" }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures { buildConfig = true }
+
+    // Release key lives outside the repo: ~/.gradle/gradle.properties (see README, "Releasing").
+    val releaseProps = listOf("STORE_FILE", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD")
+        .associateWith { providers.gradleProperty("DALAN_RELEASE_$it").orNull }
+    val hasReleaseKey = releaseProps.values.all { !it.isNullOrBlank() }
+    signingConfigs {
+        if (hasReleaseKey) create("release") {
+            storeFile = file(releaseProps["STORE_FILE"]!!)
+            storePassword = releaseProps["STORE_PASSWORD"]
+            keyAlias = releaseProps["KEY_ALIAS"]
+            keyPassword = releaseProps["KEY_PASSWORD"]
+        }
     }
 
     buildTypes {
@@ -23,7 +39,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseKey) signingConfigs.getByName("release") else {
+                logger.warn("WARNING: DALAN_RELEASE_* gradle properties not set; signing the release APK with the DEBUG key. Do not publish it (scripts/release.sh refuses).")
+                signingConfigs.getByName("debug")
+            }
         }
     }
     compileOptions {
@@ -60,6 +79,7 @@ dependencies {
     implementation(libs.core.ktx)
 
     testImplementation(libs.junit)
+    testImplementation("org.json:json:20240303") // the android.jar org.json is a stub in unit tests
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
 }

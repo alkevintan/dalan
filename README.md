@@ -41,6 +41,10 @@ No Google account or Google Play Services is needed (signing in is optional).
   video to hide its channel, start a filter from its title, or tell YouTube "Not interested" (signed in).
   Filtering applies to feeds, search, channel pages, related videos and autoplay, never to History or to a video
   you open yourself.
+- **Region selector:** Settings > Content > Region picks the country used for recommendations, trending and search
+  (it doesn't unlock geo-blocked videos). Changing it reloads the current feed.
+- **In-app updates:** checks GitHub Releases once a day (switch off in Settings > Updates) and offers to download,
+  verify (same package and signing key) and install the new APK. Settings > Updates > Check for updates runs it by hand.
 - **Settings:** account (sign in / out), max quality (360–1080p), allow 60 fps, prefer VP9 (shown only when the device has a
   hardware VP9 decoder), background play, autoplay next, caption language, theme, clear the image cache, licences.
 
@@ -98,13 +102,28 @@ Requirements: JDK 17+ (built with 21), the Android SDK with platform 37 and buil
 cp app/build/outputs/apk/release/app-release.apk Dalan-0.1.1.apk
 ```
 - **Release APK:** R8-minified with obfuscation off and broad keep rules, because the resolver is driven
-  by reflection. It's signed with the debug key, so it's for sideloading only.
+  by reflection. It's signed with the release key when `DALAN_RELEASE_*` is set (see Releasing), otherwise with the debug key.
 - **Gradle memory:** R8 needs about 2 GB of heap and 1 GB of metaspace. If your global limit is lower,
   pass `./gradlew -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=1g" ...`.
 - **Unit tests** (`app/src/test`, no network): URL parser, track policy, resume LRU, source order, error
   recovery, image scaling.
 - **Instrumented smoke test** (`app/src/androidTest`, `ResolverSmokeTest`): resolves a public video and
   asserts `containsMedia()`. Run it by hand on a device.
+
+## Releasing
+1. Bump `versionCode` / `versionName` in `app/build.gradle.kts`, commit and push to `main`.
+2. Write release notes to a file and run `scripts/release.sh notes.md`. It builds the release APK, refuses to
+   continue if it is debug-signed, and creates the GitHub release `v<versionName>` with the APK attached.
+   The in-app updater finds it through the Releases API.
+
+The release key is `~/.android/dalan-release.jks` (alias `dalan`); its passwords are in
+`~/.gradle/gradle.properties` as `DALAN_RELEASE_STORE_FILE`, `DALAN_RELEASE_STORE_PASSWORD`,
+`DALAN_RELEASE_KEY_ALIAS` and `DALAN_RELEASE_KEY_PASSWORD`. **Back up both files somewhere safe:** if the key is
+lost, nobody can update in place any more and everyone has to uninstall and reinstall. Without those properties
+the release build falls back to the debug key with a warning, which `release.sh` rejects.
+
+Users on the debug-signed 0.1.2 must uninstall once before installing 0.1.3 (Android refuses updates signed with
+a different key), so in-app updating starts from 0.1.3 onwards.
 
 ## Install
 Sideload the APK, for example:
