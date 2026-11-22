@@ -238,6 +238,7 @@ internal data class ItemWrapper(
     val continuationItemRenderer: ContinuationItemRenderer? = null, // ChannelPlaylist
     val shortsLockupViewModel: ShortsItem? = null, // Shorts v2
     val lockupViewModel: LockupItem? = null, // Home video items v2
+    val adSlotRenderer: Any? = null, // DALAN: in-feed / page-top ads (only parsed so they can be dropped)
 )
 
 internal data class TileItem(
@@ -476,7 +477,7 @@ internal data class LockupItem(
     val metadata: MetadataItem?, // title, subtitle, channelId
     val rendererContext: RendererContext?, // videoId
     val contentId: String?,
-    val contentType: String? // DALAN: LOCKUP_CONTENT_TYPE_VIDEO/SHORT/CHANNEL/PLAYLIST
+    val contentType: String? // DALAN: LOCKUP_CONTENT_TYPE_VIDEO/SHORT/CHANNEL/PLAYLIST/ALBUM/PODCAST
 ) {
     data class ContentImage(
         val thumbnailViewModel: ThumbnailViewModel?,

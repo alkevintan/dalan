@@ -174,6 +174,7 @@ private const val TILE_CONTENT_TYPE_UNDEFINED = "UNDEFINED"
 private const val TILE_CONTENT_TYPE_CHANNEL = "TILE_CONTENT_TYPE_CHANNEL"
 private const val TILE_CONTENT_TYPE_PLAYLIST = "TILE_CONTENT_TYPE_PLAYLIST"
 private const val TILE_CONTENT_TYPE_VIDEO = "TILE_CONTENT_TYPE_VIDEO"
+private const val TILE_CONTENT_TYPE_SHORTS = "TILE_CONTENT_TYPE_SHORTS" // DALAN: Home Shorts tiles (onSelectCommand.reelWatchEndpoint)
 private const val TILE_CONTENT_TYPE_EDU = "TILE_CONTENT_TYPE_EDU" // a search query tile in Home section
 
 // DALAN: 'lockupViewModel.contentType' values (TV search now returns lockups):
@@ -181,6 +182,8 @@ private const val LOCKUP_CONTENT_TYPE_VIDEO = "LOCKUP_CONTENT_TYPE_VIDEO"
 private const val LOCKUP_CONTENT_TYPE_SHORT = "LOCKUP_CONTENT_TYPE_SHORT"
 private const val LOCKUP_CONTENT_TYPE_CHANNEL = "LOCKUP_CONTENT_TYPE_CHANNEL"
 private const val LOCKUP_CONTENT_TYPE_PLAYLIST = "LOCKUP_CONTENT_TYPE_PLAYLIST"
+private const val LOCKUP_CONTENT_TYPE_ALBUM = "LOCKUP_CONTENT_TYPE_ALBUM" // opens like a playlist (browseId VLOLAK...)
+private const val LOCKUP_CONTENT_TYPE_PODCAST = "LOCKUP_CONTENT_TYPE_PODCAST" // opens like a playlist (browseId VLPL...)
 
 // 'tileRenderer.style' values:
 private const val TILE_STYLE_DEFAULT = "TILE_STYLE_YTLR_DEFAULT"
@@ -203,7 +206,11 @@ internal fun TileItem.getSubTitle() = metadata?.tileMetadataRenderer?.lines
 internal fun TileItem.getBadgeText() = header?.tileHeaderRenderer?.thumbnailOverlays
     ?.firstNotNullOfOrNull { it?.thumbnailOverlayTimeStatusRenderer?.text?.getText() }
     ?: header?.trackTileHeaderRenderer?.duration?.getText()
-internal fun TileItem.getVideoId() = onSelectCommand?.getVideoId()
+// DALAN: a Shorts tile has only onSelectCommand.reelWatchEndpoint (handled by NavigationEndpointItem.getVideoId) and contentId = videoId
+internal fun TileItem.getVideoId() = onSelectCommand?.getVideoId() ?: if (contentType == TILE_CONTENT_TYPE_SHORTS) contentId else null
+// DALAN: show/series tile: TILE_CONTENT_TYPE_VIDEO without a watchEndpoint but with onSelectCommand.browseEndpoint (VL... = playlist page, UC... = channel)
+internal fun TileItem.isPlaylistBrowse() = getVideoId() == null && onSelectCommand?.getBrowseId()?.startsWith("VL") == true
+internal fun TileItem.isChannelBrowse() = getVideoId() == null && onSelectCommand?.getBrowseId()?.startsWith("UC") == true
 internal fun TileItem.getPlaylistId() = onSelectCommand?.getPlaylistId() ?: getMenu()?.getPlaylistId()
 internal fun TileItem.getPlaylistIndex() = 0
 internal fun TileItem.getPercentWatched() = header?.tileHeaderRenderer?.thumbnailOverlays?.firstNotNullOfOrNull { it?.thumbnailOverlayResumePlaybackRenderer?.percentDurationWatched }
@@ -319,7 +326,13 @@ internal fun ItemWrapper.getType(): Int {
         return when (getTileItem()?.getContentType()) {
             TILE_CONTENT_TYPE_CHANNEL -> MediaItem.TYPE_CHANNEL
             TILE_CONTENT_TYPE_PLAYLIST -> MediaItem.TYPE_PLAYLIST
-            TILE_CONTENT_TYPE_VIDEO -> MediaItem.TYPE_VIDEO
+            TILE_CONTENT_TYPE_SHORTS -> MediaItem.TYPE_VIDEO // DALAN
+            // DALAN: shows/series come as VIDEO tiles that open a browse page
+            TILE_CONTENT_TYPE_VIDEO -> when {
+                getTileItem()?.isPlaylistBrowse() == true -> MediaItem.TYPE_PLAYLIST
+                getTileItem()?.isChannelBrowse() == true -> MediaItem.TYPE_CHANNEL
+                else -> MediaItem.TYPE_VIDEO
+            }
             else -> MediaItem.TYPE_UNDEFINED
         }
     // DALAN: TV search returns results as lockupViewModel with a contentType. Channel/playlist need a
@@ -329,7 +342,7 @@ internal fun ItemWrapper.getType(): Int {
         val hasBrowseId = lockup.getChannelId() != null
         return when {
             lockup.getContentType() == LOCKUP_CONTENT_TYPE_CHANNEL && hasBrowseId -> MediaItem.TYPE_CHANNEL
-            lockup.getContentType() == LOCKUP_CONTENT_TYPE_PLAYLIST && hasBrowseId -> MediaItem.TYPE_PLAYLIST
+            Helpers.equalsAny(lockup.getContentType(), LOCKUP_CONTENT_TYPE_PLAYLIST, LOCKUP_CONTENT_TYPE_ALBUM, LOCKUP_CONTENT_TYPE_PODCAST) && hasBrowseId -> MediaItem.TYPE_PLAYLIST
             lockup.getVideoId() != null -> MediaItem.TYPE_VIDEO
             else -> MediaItem.TYPE_UNDEFINED
         }
@@ -337,6 +350,12 @@ internal fun ItemWrapper.getType(): Int {
 
     return MediaItem.TYPE_UNDEFINED
 }
+
+// DALAN: ads (adSlotRenderer) and renderers we do not model parse to an all-null wrapper, which would show as a blank card
+internal fun ItemWrapper.isAd() = adSlotRenderer != null
+internal fun ItemWrapper.isUnrecognized() = getType() == MediaItem.TYPE_UNDEFINED && getVideoId() == null && getTitle() == null
+        && getThumbnails() == null && getChannelId() == null && getPlaylistId() == null && getQuery() == null && getContinuationToken() == null
+internal fun ItemWrapper.isAdOrUnrecognized() = isAd() || isUnrecognized()
 
 internal fun ItemWrapper.getVideoId() = getVideoItem()?.getVideoId() ?: getMusicItem()?.getVideoId() ?: getTileItem()?.getVideoId() ?: getRadioItem()?.getVideoId()
     ?: getShortsItem()?.getVideoId() ?: getLockupItem()?.getVideoId()

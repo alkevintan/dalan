@@ -196,6 +196,8 @@ class FeedView(context: Context) : FrameLayout(context) {
 
     private fun visible(items: List<MediaItem>?): List<MediaItem> {
         var l = items ?: return emptyList()
+        // Defensive: ads / unknown renderers that parsed to an empty item would show as a blank, unopenable card.
+        if (l.any { it.isBlankCard() }) l = l.filterNot { it.isBlankCard() }
         if (filterEnabled) l = Filters.filter(l, titleOnlyFilters)
         if (dismissed.isNotEmpty()) l = l.filter { it !in dismissed }
         return l
@@ -349,3 +351,6 @@ class SectionsAdapter(
         h.adapter.setItems(r.items)
     }
 }
+
+private fun MediaItem.isBlankCard() =
+    type == MediaItem.TYPE_UNDEFINED && videoId.isNullOrEmpty() && title.isNullOrEmpty()

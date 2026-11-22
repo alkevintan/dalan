@@ -10,6 +10,7 @@ import com.liskovsoft.youtubeapi.common.models.impl.mediaitem.WrapperMediaItem
 internal abstract class BaseMediaGroup(private val options: MediaGroupOptions): MediaGroup {
     private val filter: (ItemWrapper) -> Boolean = {
         it.isEmpty()
+                || it.isAdOrUnrecognized() // DALAN
                 || (options.removeShorts && it.isShorts())
                 || (options.removeLive && it.isLive())
                 || (options.removeUpcoming && it.isUpcoming())

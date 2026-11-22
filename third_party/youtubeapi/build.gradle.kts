@@ -41,4 +41,7 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.webkit)
     implementation(libs.nanojson)
+
+    testImplementation(libs.junit) // DALAN: parsing tests for the lockup / tile / ad patches
+    testImplementation(libs.gson)
 }

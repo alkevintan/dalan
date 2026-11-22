@@ -3,6 +3,7 @@ package com.liskovsoft.youtubeapi.common.models.impl.mediagroup
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup
 import com.liskovsoft.mediaserviceinterfaces.data.MediaItem
 import com.liskovsoft.youtubeapi.next.v2.gen.*
+import com.liskovsoft.youtubeapi.common.models.gen.isAdOrUnrecognized // DALAN
 import com.liskovsoft.youtubeapi.common.models.impl.mediaitem.WrapperMediaItem
 import java.util.*
 
@@ -21,6 +22,7 @@ internal data class SuggestionsGroup(val shelf: ShelfRenderer): MediaGroup {
 
     private val titleItem by lazy { shelf.getTitle() }
     private val mediaItemList by lazy { (shelves?.flatMap { it.getItemWrappers() ?: emptyList() } ?: shelf.getItemWrappers())
+        ?.filter { it == null || !it.isAdOrUnrecognized() } // DALAN: drop ads / unknown renderers
         ?.mapIndexed { index, it -> it?.let { WrapperMediaItem(it).apply { playlistIndex = index } } } }
     private val nextPageKeyVal by lazy { shelf.getContinuationToken() }
 
