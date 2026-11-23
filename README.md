@@ -41,8 +41,9 @@ No Google account or Google Play Services is needed (signing in is optional).
   video to hide its channel, start a filter from its title, or tell YouTube "Not interested" (signed in).
   Filtering applies to feeds, search, channel pages, related videos and autoplay, never to History or to a video
   you open yourself.
-- **Region selector:** Settings > Content > Region picks the country used for recommendations, trending and search
-  (it doesn't unlock geo-blocked videos). Changing it reloads the current feed.
+- **Content language:** Settings > Content > Content language picks the language YouTube uses for recommendations,
+  trending, search and search suggestions. YouTube picks the country from your network location, so it can't be
+  changed. Changing the language reloads the current feed.
 - **In-app updates:** checks GitHub Releases once a day (switch off in Settings > Updates) and offers to download,
   verify (same package and signing key) and install the new APK. Settings > Updates > Check for updates runs it by hand.
 - **Settings:** account (sign in / out), max quality (360–1080p), allow 60 fps, prefer VP9 (shown only when the device has a

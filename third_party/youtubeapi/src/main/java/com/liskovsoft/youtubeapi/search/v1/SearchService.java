@@ -64,12 +64,11 @@ public class SearchService {
 
     public List<String> getSearchTags(String searchText) {
         String country = null;
-        String language = null;
+        String language;
 
         LocaleManager localeManager = LocaleManager.instance();
         country = localeManager.getCountry();
-        // fix empty popular searches (country and language should match or use only country)
-        //language = localeManager.getLanguage();
+        language = localeManager.getLanguage();
 
         return getSearchTags(searchText, null, country, language);
     }

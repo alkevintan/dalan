@@ -77,7 +77,6 @@ object Repo {
         val svc = signInService
         svc.accounts?.toList()?.forEach { svc.removeAccount(it) }
         manager.invalidateCache()
-        Region.reapply() // invalidateCache() drops LocaleManager, and with it the Region override
         (svc as? YouTubeSignInService)?.checkAuth()
     }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).doOnTerminate { notifyAccountChanged() }
 

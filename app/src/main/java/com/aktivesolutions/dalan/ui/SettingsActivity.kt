@@ -4,10 +4,8 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.preference.ListPreference
-import java.text.Collator
-import java.util.Locale
 import com.aktivesolutions.dalan.BuildConfig
-import com.aktivesolutions.dalan.data.Region
+import com.aktivesolutions.dalan.data.ContentLanguage
 import com.aktivesolutions.dalan.data.Settings
 import com.aktivesolutions.dalan.data.Updater
 import android.content.Intent
@@ -48,7 +46,7 @@ class SettingsActivity : ThemedActivity() {
                 val vp9 = findPreference("prefer_vp9")
                 (findPreference("cat_playback") as? PreferenceCategory)?.removePreference(vp9)
             }
-            setupRegion()
+            setupContentLanguage()
             setupUpdates()
             findPreference("theme").setOnPreferenceChangeListener { _, _ ->
                 // The new value is saved after this returns; restyle this screen once it has been.
@@ -68,16 +66,13 @@ class SettingsActivity : ThemedActivity() {
             findPreference("about").setOnPreferenceClickListener { showAbout(); true }
         }
 
-        private fun setupRegion() {
-            val lp = findPreference("region") as ListPreference
-            val collator = Collator.getInstance()
-            val countries = Locale.getISOCountries()
-                .map { it to Locale("", it).displayCountry.ifBlank { it } }
-                .sortedWith { a, b -> collator.compare(a.second, b.second) }
-            lp.entries = (listOf(getString(R.string.region_auto)) + countries.map { it.second }).toTypedArray()
-            lp.entryValues = (listOf("") + countries.map { it.first }).toTypedArray()
-            lp.value = Settings.get(activity).region // re-sync the selection now that the real list is set
-            lp.setOnPreferenceChangeListener { _, v -> Region.apply(v as String); true }
+        private fun setupContentLanguage() {
+            val lp = findPreference("content_language") as ListPreference
+            val langs = ContentLanguage.labelled()
+            lp.entries = (listOf(getString(R.string.language_auto)) + langs.map { it.second }).toTypedArray()
+            lp.entryValues = (listOf("") + langs.map { it.first }).toTypedArray()
+            lp.value = Settings.get(activity).contentLanguage // re-sync the selection now that the real list is set
+            lp.setOnPreferenceChangeListener { _, v -> ContentLanguage.apply(v as String); true }
         }
 
         private var updateAction: io.reactivex.disposables.Disposable? = null

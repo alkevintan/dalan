@@ -17,7 +17,7 @@ import android.widget.SearchView
 import android.widget.SimpleCursorAdapter
 import com.aktivesolutions.dalan.R
 import com.aktivesolutions.dalan.data.Filters
-import com.aktivesolutions.dalan.data.Region
+import com.aktivesolutions.dalan.data.ContentLanguage
 import com.aktivesolutions.dalan.data.Repo
 import io.reactivex.disposables.Disposable
 
@@ -38,7 +38,7 @@ class MainActivity : ThemedActivity() {
     private val tabButtons = HashMap<Tab, Button>()
     private var tab = Tab.MUSIC
     private var filtersSeen = Filters.version
-    private var regionSeen = Region.version
+    private var languageSeen = ContentLanguage.version
     private var signedIn = false
     private val accountListener: () -> Unit = { onAccountChanged() }
     private var loadAction: Disposable? = null
@@ -106,12 +106,12 @@ class MainActivity : ThemedActivity() {
     override fun onResume() {
         super.onResume()
         if (recreating) return
-        val regionChanged = regionSeen != Region.version
-        regionSeen = Region.version
+        val languageChanged = languageSeen != ContentLanguage.version
+        languageSeen = ContentLanguage.version
         val wasSignedIn = signedIn
         onAccountChanged()
-        // onAccountChanged() already reloaded if the account changed; otherwise reload for the new region.
-        if (regionChanged && wasSignedIn == signedIn) { buildTabs(); load() }
+        // onAccountChanged() already reloaded if the account changed; otherwise reload for the new language.
+        if (languageChanged && wasSignedIn == signedIn) { buildTabs(); load() }
         if (filtersSeen != Filters.version) { filtersSeen = Filters.version; feed.reapplyFilters() }
     }
 

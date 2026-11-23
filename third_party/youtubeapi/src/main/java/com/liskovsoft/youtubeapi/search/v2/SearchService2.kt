@@ -63,14 +63,10 @@ internal open class SearchService2 {
     }
 
     open fun getSearchTags(searchText: String?): List<String>? {
-        var country: String? = null
-        val language: String? = null
-
         val localeManager = LocaleManager.instance()
-        country = localeManager.country
+        val country = localeManager.country
+        val language = localeManager.language
 
-        // fix empty popular searches (country and language should match or use only country)
-        //language = localeManager.getLanguage();
         return getSearchTags(searchText, null, country, language)
     }
 

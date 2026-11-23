@@ -10,7 +10,8 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public class LocaleManager {
-    private static LocaleManager sInstance;
+    private static volatile LocaleManager sInstance;
+    private static volatile String sLanguageOverride;
     private String mLang;
     private String mCountry;
     private int mOffsetFromUtcMinutes;
@@ -21,11 +22,24 @@ public class LocaleManager {
     }
 
     public static LocaleManager instance() {
-        if (sInstance == null) {
-            sInstance = new LocaleManager();
+        LocaleManager result = sInstance;
+        if (result == null) {
+            synchronized (LocaleManager.class) {
+                result = sInstance;
+                if (result == null) {
+                    result = sInstance = new LocaleManager();
+                }
+            }
         }
 
-        return sInstance;
+        return result;
+    }
+
+    /**
+     * Forces the content language (BCP-47) and survives {@link #unhold()}. Empty or null means no override.
+     */
+    public static void setLanguageOverride(String tagOrNull) {
+        sLanguageOverride = (tagOrNull == null || tagOrNull.isEmpty()) ? null : tagOrNull;
     }
 
     public static void unhold() {
@@ -33,7 +47,8 @@ public class LocaleManager {
     }
 
     public String getLanguage() {
-        return mLang;
+        String override = sLanguageOverride;
+        return override != null ? override : mLang;
     }
 
     /**

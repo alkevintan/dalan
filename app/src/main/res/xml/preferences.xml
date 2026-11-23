@@ -14,13 +14,18 @@
     </PreferenceCategory>
     <PreferenceCategory android:key="cat_content" android:title="@string/pref_content">
         <ListPreference
-            android:key="region"
-            android:title="@string/pref_region"
-            android:dialogTitle="@string/pref_region_dialog"
-            android:entries="@array/region_placeholder"
-            android:entryValues="@array/region_placeholder_values"
+            android:key="content_language"
+            android:title="@string/pref_content_language"
+            android:dialogTitle="@string/pref_content_language"
+            android:entries="@array/language_placeholder"
+            android:entryValues="@array/language_placeholder_values"
             android:defaultValue=""
             android:summary="%s" />
+        <Preference
+            android:key="content_country_note"
+            android:title="@string/pref_country"
+            android:selectable="false"
+            android:summary="@string/pref_country_note" />
     </PreferenceCategory>
     <PreferenceCategory android:key="cat_playback" android:title="@string/pref_playback">
         <ListPreference

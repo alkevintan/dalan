@@ -178,11 +178,12 @@
     <string name="filter_not_interested">Not interested</string>
     <string name="filter_channel_hidden">Added to \u201c%1$s\u201d</string>
     <string name="pref_content">Content</string>
-    <string name="pref_region">Region</string>
-    <string name="pref_region_dialog">Region (recommendations, trending and search; not geo-blocked videos)</string>
-    <string name="region_auto">Automatic (system)</string>
-    <string-array name="region_placeholder"><item>@string/region_auto</item></string-array>
-    <string-array name="region_placeholder_values"><item></item></string-array>
+    <string name="pref_content_language">Content language</string>
+    <string name="pref_country">Country</string>
+    <string name="pref_country_note">YouTube picks the country for recommendations and trending from your network location. Language steers which content you see.</string>
+    <string name="language_auto">Automatic (system)</string>
+    <string-array name="language_placeholder"><item>@string/language_auto</item></string-array>
+    <string-array name="language_placeholder_values"><item></item></string-array>
     <string name="pref_updates_cat">Updates</string>
     <string name="pref_check_update">Check for updates</string>
     <string name="pref_current_version">Current version %1$s</string>

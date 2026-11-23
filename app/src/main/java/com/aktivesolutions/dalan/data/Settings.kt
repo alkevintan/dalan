@@ -15,8 +15,8 @@ class Settings(context: Context) {
     val backgroundPlay: Boolean get() = prefs.getBoolean("background_play", true)
     val autoplayNext: Boolean get() = prefs.getBoolean("autoplay_next", true)
 
-    /** ISO 3166 country code for content (YouTube `gl`); empty means the system country. */
-    val region: String get() = prefs.getString("region", "") ?: ""
+    /** BCP-47 language tag for content (YouTube `hl`); empty means the system language. */
+    val contentLanguage: String get() = prefs.getString("content_language", "") ?: ""
     val autoUpdateCheck: Boolean get() = prefs.getBoolean("auto_update_check", true)
 
     /** "system" (default), "light" or "dark". */

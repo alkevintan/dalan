@@ -12,8 +12,8 @@ android {
         applicationId = "com.aktivesolutions.dalan"
         minSdk = 21
         targetSdk = 25
-        versionCode = 4
-        versionName = "0.1.3"
+        versionCode = 5
+        versionName = "0.1.4"
         buildConfigField("String", "UPDATE_REPO", "\"alkevintan/dalan\"")
         ndk { abiFilters += "armeabi-v7a" }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
