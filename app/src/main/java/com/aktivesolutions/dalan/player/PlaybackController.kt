@@ -183,12 +183,25 @@ class PlaybackController(
         if (cap != null && !f.isLive && source != null) {
             source = builder.withCaption(source, cap, durationUs(f))
         }
-        start(source!!, startMs)
+        start(source!!, startMs, f, built.kind)
     }
 
-    private fun start(source: MediaSource, startMs: Long) {
-        if (startMs > 0) player.seekTo(startMs) else player.seekTo(0)
-        player.prepare(source, startMs <= 0, true)
+    private fun start(source: MediaSource, startMs: Long, f: MediaItemFormatInfo, kind: SourceKind) {
+        if (f.isLive) {
+            // Live: saved positions are meaningless; go to the live edge (see LiveStart).
+            val pos = LiveStart.startPositionMs(
+                kind, f.startTimeMs, f.startSegmentNum, f.segmentDurationUs, System.currentTimeMillis()
+            )
+            if (pos == null) {
+                player.prepare(source, true, true) // dynamic manifest: default position is the live edge
+            } else {
+                player.seekTo(pos)
+                player.prepare(source, false, true) // resetPosition=false so the seek sticks
+            }
+        } else {
+            if (startMs > 0) player.seekTo(startMs) else player.seekTo(0)
+            player.prepare(source, startMs <= 0, true)
+        }
         player.playWhenReady = true
         updateTick()
     }
